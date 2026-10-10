@@ -4,6 +4,19 @@ version = "0.1.0"
 description = "Learn how the Fluxer bot API works by snapping blocks together. Blocks compile to real fluxer.py code."
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "jinja2>=3.1,<4.0",
+    "python-multipart>=0.0.18",
+    "pydantic-settings>=2.6,<3.0",
+    "sqlalchemy>=2.0,<2.2",
+    "psycopg[binary]>=3.2,<4.0",
+    "cryptography>=43.0",
+    "itsdangerous>=2.2,<3.0",
+    "httpx>=0.27,<1.0",
+    "fluxer.py>=0.4.2,<0.5",
+]
 
 # Vercel: where the FastAPI instance named `app` lives (index.py re-exports the same object).
 [tool.vercel]
