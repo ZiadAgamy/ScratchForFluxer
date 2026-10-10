@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, social %}
+{% block title %}Privacy - {{ app_name }}{% endblock %}
+{% block description %}What {{ app_name }} stores about you and your bots, which cookies it sets, and how to delete everything.{% endblock %}
+{% block meta %}{{ social(app_name, "Privacy - " ~ app_name, "What the site stores about you and your bots, which cookies it sets, and how to delete everything.", og_image, canonical) }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ static('css/privacy.css') }}">{% endblock %}
+
+{% block content %}
+<article class="container prose">
+  <header class="prose-head">
+    <h1>Privacy</h1>
+    <p class="lead">{{ app_name }} is a learning tool. It keeps what it needs to log you in, remember your bots and run them, and nothing else. This page lists all of it.</p>
+  </header>
+
+  <section aria-labelledby="p-login">
+    <h2 id="p-login">When you log in</h2>
+    <ul>
+      <li>Fluxer tells us your user ID, username, display name and avatar. We save them so we can show who is logged in and keep your bots under your account.</li>
+      <li>We don't ask for your email address, your servers or your messages.</li>
+      <li>Fluxer's access token is used once, to read that profile, and is revoked straight away. We never store it.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="p-bots">
+    <h2 id="p-bots">About your bots</h2>
+    <ul>
+      <li>For each bot we keep its name, its Fluxer application name, its username and its avatar, so we can show it in your list.</li>
+      <li>The bot token is stored encrypted. The last four characters are kept as they are, so you can tell tokens apart. Your browser is never sent the token back; it is decrypted only on the server, when your bot runs or when you replace the token.</li>
+      <li>When your bot runs, the token is sent over HTTPS to the server that runs bots. That server keeps it in memory, never on disk, and lets go of it when the bot stops.</li>
+      <li>We keep the blocks you build and the files you upload (images, JSON and so on).</li>
+      <li>The console shows what your bot writes while it runs. The server that runs bots holds that output in memory, for the latest run of each bot only, and drops it about an hour after the bot stops (or sooner, if you start the bot again or that server restarts). It is never saved to the database.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="p-cookies">
+    <h2 id="p-cookies">Cookies</h2>
+    <ul>
+      <li><code>sff_session</code> keeps you logged in for up to 14 days. JavaScript can't read it. Logging out removes it and signs you out on every device, so a copied cookie stops working too.</li>
+      <li><code>sff_oauth</code> exists for a few minutes while you log in. It protects the login from being forged.</li>
+      <li>No analytics, advertising or tracking cookies, and no analytics scripts.</li>
+      <li>To limit abuse, the server briefly remembers how often each address has made requests. That is held in memory and is not saved to the database.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="p-others">
+    <h2 id="p-others">Who else is involved</h2>
+    <ul>
+      <li><strong>Fluxer.</strong> It handles the login, we check bot tokens with it, and a running bot talks to Fluxer like any other bot. Avatars are loaded straight from Fluxer's servers into your browser.</li>
+      <li><strong>Hosting.</strong> The site runs on a cloud platform and keeps its data in a hosted database. Bots run on a separate server. Fonts and icons come from this site, not from a font or icon CDN.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="p-delete">
+    <h2 id="p-delete">Deleting your data</h2>
+    <ul>
+      <li>On <a href="/bots">My bots</a>, <strong>Delete my data</strong> stops your running bots and removes your account, every bot, saved token, block layout and uploaded file from this site, at once and for good. You can also remove one bot at a time.</li>
+      <li>Copies in the hosting provider's routine backups expire on its own schedule.</li>
+      <li>This doesn't change anything on Fluxer. Your Fluxer account and your bot stay as they are; manage those in Fluxer.</li>
+    </ul>
+  </section>
+
+  {% if contact_url or community_url %}
+  <section aria-labelledby="p-contact">
+    <h2 id="p-contact">Questions</h2>
+    {% if contact_url %}
+    <p>You can reach the person who runs this site <a href="{{ contact_url }}" rel="noopener noreferrer">here</a>.</p>
+    {% endif %}
+    {% if community_url %}
+    <p>Questions about the site or your data can also go to the <a href="{{ community_url }}" target="_blank" rel="noopener noreferrer">community server</a> on Fluxer. Nothing from this site is sent there; it is a normal Fluxer server, with Fluxer's own rules.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

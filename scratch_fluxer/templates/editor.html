@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}{{ bot.name }} - Blocks - {{ app_name }}{% endblock %}
+{% block description %}Build the blocks for {{ bot.name }} and read the Python they write.{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block body_class %}editor-page{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{{ static('css/editor.css') }}">
+{% endblock %}
+
+{#- The editor has its own toolbar instead of the site header, and no footer: the workspace uses the whole window. -#}
+{% block header %}
+<header class="ed-bar">
+  <a class="ed-icon-btn" href="/bots" aria-label="Back to my bots" title="My bots">{{ icon("arrow-left") }}</a>
+
+  <div class="ed-bot">
+    <img class="avatar" src="{{ bot.avatar_url }}" alt="" width="32" height="32" referrerpolicy="no-referrer" decoding="async" data-fallback>
+    <div class="ed-bot-text">
+      <strong class="ed-bot-name">{{ bot.name }}</strong>
+      <span class="ed-bot-handle">@{{ bot.bot_username }}</span>
+    </div>
+  </div>
+
+  <div class="ed-status" id="ed-status" data-state="loading" role="status" aria-live="polite">
+    <i class="ph-fill ph-spinner-gap" aria-hidden="true"></i>
+    <span id="ed-status-text">Loading</span>
+  </div>
+
+  <div class="ed-spacer"></div>
+
+  <button class="ed-problems" id="ed-problems-pill" type="button" hidden>
+    {{ icon("warning") }}<span id="ed-problems-text"></span>
+  </button>
+
+  <div class="ed-run" role="group" aria-label="Run your bot">
+    <button class="btn btn-sm ed-run-btn ed-run-play" id="run-btn" type="button" disabled title="Run your bot">{{ icon("play") }}<span>Run</span></button>
+    <button class="btn btn-sm ed-run-btn" id="restart-btn" type="button" disabled title="Stop the bot and start it again with your latest blocks">{{ icon("arrow-clockwise") }}<span>Restart</span></button>
+    <button class="btn btn-sm btn-danger ed-run-btn" id="stop-btn" type="button" disabled title="Stop your bot">{{ icon("stop") }}<span>Stop</span></button>
+  </div>
+
+  <details class="menu ed-get" id="ed-get">
+    <summary class="btn btn-sm" aria-label="Get your code">{{ icon("download-simple") }}<span>Get code</span>{{ icon("caret-down") }}</summary>
+    <div class="menu-panel">
+      <div class="menu-head">Take your bot with you</div>
+      <a class="menu-item" id="get-py" href="/bots/{{ bot.id }}/export/main.py" download="main.py">{{ icon("file-code") }}<span>Python file <small>main.py</small></span></a>
+      <a class="menu-item" id="get-zip" href="/bots/{{ bot.id }}/export/bot.zip" download>{{ icon("file-zip") }}<span>Folder with your files <small>.zip</small></span></a>
+      <p class="menu-note" id="get-note" hidden>Fix the problems listed in the editor to download your code.</p>
+    </div>
+  </details>
+
+  <details class="menu ed-account">
+    <summary aria-label="Account menu">
+      <img class="avatar" src="{{ user.avatar_url }}" alt="" width="32" height="32" referrerpolicy="no-referrer" decoding="async" data-fallback>
+    </summary>
+    <div class="menu-panel">
+      <div class="menu-head">Logged in as <strong>{{ user.display_name }}</strong>@{{ user.username }}</div>
+      <a class="menu-item" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+      <a class="menu-item" href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ icon("arrow-square-out") }}<span>Open Fluxer</span></a>
+      <form method="post" action="/auth/logout">
+        <input type="hidden" name="csrf_token" value="{{ user.csrf }}">
+        <button class="menu-item" type="submit">{{ icon("sign-out") }}<span>Log out</span></button>
+      </form>
+    </div>
+  </details>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="ed-shell" id="editor" data-view="blocks"
+     data-bot-id="{{ bot.id }}"
+     data-bot-name="{{ bot.name }}"
+     data-runner="{{ runner_mode }}">
+
+  {#- ---------------------------------------------------------------- the blocks -#}
+  <section class="ed-stage" id="view-blocks" aria-label="Blocks">
+    <div class="ed-blockly" id="blockly"></div>
+
+    <div class="ed-tools" role="toolbar" aria-label="Workspace tools" id="ed-tools" hidden>
+      <button class="ed-icon-btn" id="tool-undo" type="button" aria-label="Undo" title="Undo (Ctrl+Z)">{{ icon("arrow-u-up-left") }}</button>
+      <button class="ed-icon-btn" id="tool-redo" type="button" aria-label="Redo" title="Redo (Ctrl+Shift+Z)">{{ icon("arrow-u-up-right") }}</button>
+      <span class="ed-tools-sep" aria-hidden="true"></span>
+      <button class="ed-icon-btn" id="tool-tidy" type="button" aria-label="Tidy up the blocks" title="Tidy up the blocks">{{ icon("sparkle") }}</button>
+      <span class="ed-tools-sep" aria-hidden="true"></span>
+      <button class="ed-icon-btn" id="tool-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">{{ icon("magnifying-glass-minus") }}</button>
+      <button class="ed-icon-btn" id="tool-zoom-fit" type="button" aria-label="Show all blocks" title="Show all blocks">{{ icon("corners-out") }}</button>
+      <button class="ed-icon-btn" id="tool-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">{{ icon("magnifying-glass-plus") }}</button>
+    </div>
+
+    <div class="ed-tip" id="ed-tip" hidden>
+      {{ icon("lightbulb") }}
+      <p><strong>Tip:</strong> drag a block from the left and snap it under a yellow event block. The Python your blocks write shows up on the right.</p>
+      <button class="ed-icon-btn" id="ed-tip-close" type="button" aria-label="Hide this tip">{{ icon("x") }}</button>
+    </div>
+
+    <div class="ed-overlay" id="ed-loading" role="status">
+      <div class="ed-spinner" aria-hidden="true"></div>
+      <p>Loading your blocks…</p>
+    </div>
+
+    <div class="ed-overlay" id="ed-failed" role="alert" hidden>
+      {{ icon("warning-circle") }}
+      <h2>The editor couldn't start</h2>
+      <p id="ed-failed-text">Something went wrong while loading your blocks.</p>
+      <button class="btn btn-primary" id="ed-retry" type="button">{{ icon("arrow-clockwise") }}<span>Try again</span></button>
+    </div>
+
+    <noscript>
+      <div class="ed-overlay ed-overlay-static">
+        {{ icon("warning-circle") }}
+        <h2>The block editor needs JavaScript</h2>
+        <p>Turn JavaScript on in your browser and reload this page.</p>
+      </div>
+    </noscript>
+  </section>
+
+  <div class="ed-split ed-split-v" id="split-side" role="separator" aria-orientation="vertical" aria-label="Resize the side panel" tabindex="0"></div>
+
+  {#- ---------------------------------------------------------------- Python, files, problems, console -#}
+  <aside class="ed-side" aria-label="Your bot">
+    <section class="ed-details" aria-label="Python, files and problems">
+      <div class="ed-tabs" role="tablist" aria-label="Details" id="ed-tabs">
+        <button class="ed-tab" role="tab" id="tab-code" aria-controls="pane-code" aria-selected="true" type="button">{{ icon("code") }}<span>Python</span></button>
+        <button class="ed-tab" role="tab" id="tab-files" aria-controls="pane-files" aria-selected="false" tabindex="-1" type="button">{{ icon("folder-simple") }}<span>Files</span><span class="ed-count" id="files-count">0</span></button>
+        <button class="ed-tab" role="tab" id="tab-problems" aria-controls="pane-problems" aria-selected="false" tabindex="-1" type="button">{{ icon("warning") }}<span>Problems</span><span class="ed-count ed-count-warn" id="problems-count" hidden>0</span></button>
+      </div>
+
+      <div class="ed-pane" id="pane-code" role="tabpanel" aria-labelledby="tab-code">
+        <div class="ed-pane-head">
+          <span class="ed-file"><i class="ph-fill ph-file-code" aria-hidden="true"></i> main.py <span class="ed-muted" id="code-meta"></span></span>
+          <button class="btn btn-ghost btn-sm" id="code-copy" type="button">{{ icon("copy") }}<span>Copy</span></button>
+        </div>
+        <div class="ed-banner" id="code-banner" hidden></div>
+        <div class="ed-code" id="code-view" tabindex="0" role="region" aria-label="Python code, read only"></div>
+      </div>
+
+      <div class="ed-pane" id="pane-files" role="tabpanel" aria-labelledby="tab-files" hidden>
+        <div class="ed-pane-head">
+          <div class="ed-meter">
+            <span id="files-usage">0 of 40 files</span>
+            <span class="ed-meter-bar" aria-hidden="true"><span id="files-bar"></span></span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="files-add" type="button">{{ icon("upload-simple") }}<span>Add files</span></button>
+        </div>
+        <div class="ed-files" id="files-list" aria-live="polite"></div>
+        <div class="ed-drop" id="files-drop">
+          {{ icon("upload-simple") }}
+          <p><strong>Drop files here</strong> or use <em>Add files</em>.</p>
+          <p class="ed-muted" id="files-accepted">{{ limits.accepted }}</p>
+        </div>
+      </div>
+
+      <div class="ed-pane" id="pane-problems" role="tabpanel" aria-labelledby="tab-problems" hidden>
+        <div class="ed-problems-list" id="problems-list"></div>
+      </div>
+    </section>
+
+    <div class="ed-split ed-split-h" id="split-console" role="separator" aria-orientation="horizontal" aria-label="Resize the console" tabindex="0"></div>
+
+    <section class="ed-console" id="view-console" aria-label="Console">
+      <div class="ed-console-head">
+        <h2><i class="ph-fill ph-terminal-window" aria-hidden="true"></i> Console</h2>
+        <span class="ed-run-state" id="run-state" data-state="idle">Not running</span>
+        <span class="visually-hidden" id="run-announce" role="status" aria-live="polite"></span>
+        <div class="ed-spacer"></div>
+        <div class="ed-filters" role="group" aria-label="Show">
+          <button class="ed-filter" type="button" data-filter="all" aria-pressed="true">All</button>
+          <button class="ed-filter" type="button" data-filter="warning" aria-pressed="false">Warnings</button>
+          <button class="ed-filter" type="button" data-filter="error" aria-pressed="false">Errors</button>
+        </div>
+        <button class="ed-icon-btn" id="console-clear" type="button" aria-label="Clear the console" title="Clear the console">{{ icon("trash") }}</button>
+      </div>
+      <div class="ed-log" id="console-log" role="log" aria-live="off" tabindex="0" aria-label="Messages from your bot"></div>
+    </section>
+  </aside>
+
+  {#- ---------------------------------------------------------------- phone navigation -#}
+  <nav class="ed-dock" id="ed-dock" aria-label="Switch view">
+    <button type="button" data-view="blocks" aria-pressed="true">{{ icon("puzzle-piece") }}<span>Blocks</span></button>
+    <button type="button" data-view="code" aria-pressed="false">{{ icon("code") }}<span>Python</span></button>
+    <button type="button" data-view="files" aria-pressed="false">{{ icon("folder-simple") }}<span>Files</span></button>
+    <button type="button" data-view="problems" aria-pressed="false">{{ icon("warning") }}<span>Problems</span></button>
+    <button type="button" data-view="console" aria-pressed="false">{{ icon("terminal-window") }}<span>Console</span></button>
+  </nav>
+
+  <div class="ed-dropveil" id="ed-dropveil" hidden>
+    {{ icon("upload-simple") }}
+    <p>Drop to add files to this bot</p>
+  </div>
+</div>
+
+<input type="file" id="file-input" multiple hidden accept="{{ limits.extensions | join(',') }}">
+{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block scripts %}
+  <script src="{{ static('vendor/blockly/blockly.min.js') }}" defer></script>
+  <script src="{{ static('js/editor/util.js') }}" defer></script>
+  <script src="{{ static('js/editor/python.js') }}" defer></script>
+  <script src="{{ static('js/editor/dialogs.js') }}" defer></script>
+  <script src="{{ static('js/editor/files.js') }}" defer></script>
+  <script src="{{ static('js/editor/blocks.js') }}" defer></script>
+  <script src="{{ static('js/editor/code.js') }}" defer></script>
+  <script src="{{ static('js/editor/problems.js') }}" defer></script>
+  <script src="{{ static('js/editor/console.js') }}" defer></script>
+  <script src="{{ static('js/editor/runner.js') }}" defer></script>
+  <script src="{{ static('js/editor/autosave.js') }}" defer></script>
+  <script src="{{ static('js/editor/main.js') }}" defer></script>
+{% endblock %}

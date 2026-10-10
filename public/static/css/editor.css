@@ -1,0 +1,1929 @@
+/* ==========================================================================
+   The block editor page.
+   One window-sized workspace: a toolbar on top, the blocks on the left, and on the right the Python / Files /
+   Problems tabs with the console underneath. On a phone it shows one of those at a time, with a bar at the bottom.
+   Everything here uses the tokens from app.css. The last section restyles Blockly itself.
+   ========================================================================== */
+
+/* ---------- the page frame ---------- */
+.editor-page {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.editor-page main {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.ed-shell {
+  --side-w: 27rem;
+  --console-h: 15rem;
+  --rail-w: 4.75rem;
+  --code-bg: hsl(var(--hue) 10% 7%);
+  --code-hover: hsl(var(--hue) 9% 11%);
+  --code-lit: color-mix(in srgb, var(--accent) 18%, var(--code-bg));
+  position: relative;
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 0.375rem min(var(--side-w), calc(100% - 24rem));
+  grid-template-rows: minmax(0, 1fr);
+  min-width: 0;
+  background: var(--bg-page);
+}
+
+body.is-resizing {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.is-resizing * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+/* ---------- the toolbar ---------- */
+.ed-bar {
+  position: relative;
+  z-index: 40;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3.5rem;
+  padding: 0.4rem max(0.75rem, env(safe-area-inset-right)) 0.4rem max(0.75rem, env(safe-area-inset-left));
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.ed-spacer {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ed-icon-btn {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 1.125rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.ed-icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ed-icon-btn:disabled {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.ed-icon-btn.ed-icon-danger:hover {
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.ed-bot {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding-inline-start: 0.25rem;
+}
+
+.ed-bot .avatar {
+  flex: none;
+}
+
+.ed-bot-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.ed-bot-name {
+  max-width: 14rem;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-bot-handle {
+  max-width: 14rem;
+  overflow: hidden;
+  color: var(--text-3);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The save status: a small chip that is quiet when all is well and asks for a look when it is not. */
+.ed-status {
+  --tone: var(--text-3);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--tone);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.ed-status[data-state="saved"] .ph-fill {
+  color: var(--ok);
+}
+
+.ed-status[data-state="dirty"],
+.ed-status[data-state="saving"],
+.ed-status[data-state="loading"] {
+  --tone: var(--text-2);
+}
+
+.ed-status[data-state="saving"] .ph-fill,
+.ed-status[data-state="loading"] .ph-fill {
+  color: var(--accent-hi);
+}
+
+.ed-status[data-state="offline"],
+.ed-status[data-state="limited"],
+.ed-status[data-state="conflict"] {
+  --tone: var(--warn);
+  background: color-mix(in srgb, var(--warn) 11%, transparent);
+  border-color: color-mix(in srgb, var(--warn) 34%, transparent);
+}
+
+.ed-status[data-state="error"] {
+  --tone: var(--danger);
+  background: color-mix(in srgb, var(--danger) 11%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 34%, transparent);
+}
+
+.ed-status.is-action {
+  cursor: pointer;
+}
+
+.ed-status.is-action:hover {
+  background: color-mix(in srgb, var(--tone) 20%, transparent);
+}
+
+.ed-spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* "2 problems": appears while the blocks have something to fix. Click to open the list. */
+.ed-problems {
+  --tone: var(--warn);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--tone) 40%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 12%, var(--bg-raised));
+  color: var(--tone);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.ed-problems:hover {
+  background: color-mix(in srgb, var(--tone) 22%, var(--bg-raised));
+}
+
+.ed-problems.is-error {
+  --tone: var(--danger);
+}
+
+.ed-run {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ed-run-play {
+  --btn-bg: var(--ok);
+  --btn-bg-hover: #67d598;
+  --btn-fg: var(--ink-on-block);
+  --btn-lip: #2b8a56;
+}
+
+.ed-get > summary.btn {
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--r-sm);
+  background: var(--btn-bg);
+}
+
+.ed-get > summary.btn:hover,
+.ed-get[open] > summary.btn {
+  background: var(--btn-bg-hover);
+}
+
+.ed-get .menu-panel {
+  min-width: 17rem;
+}
+
+.ed-get .menu-item small {
+  margin-inline-start: 0.35rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.ed-get .menu-item.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-note {
+  margin: 0.25rem 0.35rem 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--warn) 11%, transparent);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+}
+
+.ed-account > summary {
+  padding: 0.15rem;
+}
+
+/* ---------- the blocks ---------- */
+.ed-stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #0f0e11;
+  isolation: isolate;
+}
+
+.ed-blockly {
+  position: absolute;
+  inset: 0;
+}
+
+/* undo, redo, tidy, zoom */
+.ed-tools {
+  position: absolute;
+  top: 0.75rem;
+  right: 1.25rem;
+  z-index: 15; /* above the workspace, below Blockly's block list (20) when the two meet on a narrow window */
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--bg-raised) 92%, transparent);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.ed-tools-sep {
+  align-self: stretch;
+  width: 1px;
+  margin: 0.3rem 0.2rem;
+  background: var(--line-strong);
+}
+
+.ed-tip {
+  position: absolute;
+  bottom: 1rem;
+  left: calc(var(--rail-w) + 1rem);
+  z-index: 10; /* above the workspace, below Blockly's flyout (20) and rail (70) */
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  max-width: min(30rem, calc(100% - var(--rail-w) - 5.5rem));
+  padding: 0.7rem 0.5rem 0.7rem 0.9rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-panel);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.45);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+}
+
+.ed-tip.is-covered {
+  visibility: hidden;
+}
+
+.ed-tip > .ph-fill {
+  margin-top: 0.15rem;
+  color: var(--warn);
+  font-size: 1.25em;
+}
+
+.ed-tip p {
+  flex: 1;
+  color: var(--text-2);
+}
+
+.ed-tip strong {
+  color: var(--text);
+}
+
+.ed-tip .ed-icon-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1rem;
+}
+
+.ed-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: 1.5rem;
+  background: var(--bg-page);
+  text-align: center;
+}
+
+.ed-overlay > .ph-fill {
+  color: var(--danger);
+  font-size: 2.5rem;
+}
+
+.ed-overlay h2 {
+  font-size: var(--fs-xl);
+}
+
+.ed-overlay p {
+  max-width: 28rem;
+  color: var(--text-2);
+}
+
+.ed-overlay-static {
+  position: static;
+  min-height: 100%;
+}
+
+.ed-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--line-strong);
+  border-top-color: var(--accent-hi);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ---------- the draggable dividers ---------- */
+.ed-split {
+  position: relative;
+  z-index: 6;
+  background: var(--line);
+  transition: background-color 0.15s;
+  touch-action: none;
+}
+
+.ed-split::before {
+  content: "";
+  position: absolute;
+}
+
+.ed-split::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  border-radius: 3px;
+  background: var(--line-strong);
+  transform: translate(-50%, -50%);
+  transition: background-color 0.15s;
+}
+
+.ed-split-v {
+  cursor: col-resize;
+}
+
+.ed-split-v::before {
+  inset: 0 -5px;
+}
+
+.ed-split-v::after {
+  width: 2px;
+  height: 2.5rem;
+}
+
+.ed-split-h {
+  height: 0.375rem;
+  cursor: row-resize;
+}
+
+.ed-split-h::before {
+  inset: -5px 0;
+}
+
+.ed-split-h::after {
+  width: 2.5rem;
+  height: 2px;
+}
+
+.ed-split:hover,
+.ed-split:focus-visible,
+.ed-split.is-dragging {
+  background: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.ed-split:hover::after,
+.ed-split:focus-visible::after,
+.ed-split.is-dragging::after {
+  background: var(--accent-hi);
+}
+
+.ed-split:focus-visible {
+  outline: none;
+}
+
+/* ---------- the right-hand side ---------- */
+.ed-side {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto var(--console-h);
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-raised);
+}
+
+.ed-details {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.ed-tabs {
+  display: flex;
+  flex: none;
+  gap: 0.15rem;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.ed-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.75rem 0.62rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ed-tab:hover {
+  color: var(--text-2);
+}
+
+.ed-tab[aria-selected="true"] {
+  border-bottom-color: var(--accent-hi);
+  color: var(--text);
+}
+
+.ed-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--text-2);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ed-count-warn {
+  background: color-mix(in srgb, var(--warn) 22%, var(--bg-raised));
+  color: var(--warn);
+}
+
+.ed-count-error {
+  background: color-mix(in srgb, var(--danger) 24%, var(--bg-raised));
+  color: var(--danger);
+}
+
+.ed-pane {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.ed-pane-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ed-pane-head .ed-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ed-pane-head .ed-file .ph-fill {
+  color: var(--cat-bot);
+}
+
+.ed-muted {
+  color: var(--text-3);
+  font-size: 0.8125rem;
+}
+
+.ed-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-hi);
+  font: inherit;
+  text-align: start;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.ed-link:hover {
+  color: #fff;
+}
+
+.ed-empty {
+  padding: 1.5rem 1rem;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.ed-banner {
+  --tone: var(--warn);
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+  background: color-mix(in srgb, var(--tone) 10%, var(--bg-raised));
+  font-size: 0.8125rem;
+}
+
+.ed-banner.is-error {
+  --tone: var(--danger);
+}
+
+.ed-banner > .ph-fill {
+  color: var(--tone);
+}
+
+.ed-banner > span {
+  flex: 1;
+  color: var(--text-2);
+}
+
+/* ---------- the Python tab ---------- */
+.ed-code {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 0.5rem 0 1rem;
+  overflow: auto;
+  background: var(--code-bg);
+  color: hsl(var(--hue) 14% 88%);
+  font: 400 0.8125rem / 1.7 var(--font-mono);
+  tab-size: 4;
+}
+
+.ed-code:focus-visible {
+  outline-offset: -2px;
+}
+
+.cl {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  border-inline-start: 3px solid transparent;
+  cursor: pointer;
+}
+
+.cl:hover {
+  background: var(--code-hover);
+}
+
+.cl.is-lit {
+  background: var(--code-lit);
+  border-inline-start-color: var(--accent-hi);
+}
+
+.cl.is-lit-first {
+  border-start-start-radius: 4px;
+}
+
+.cl.is-lit-last {
+  border-end-start-radius: 4px;
+}
+
+.cn {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  flex: none;
+  box-sizing: content-box;
+  width: calc(var(--cn-digits, 2) * 1ch);
+  padding: 0 0.7rem 0 0.6rem;
+  background: var(--code-bg);
+  color: var(--text-3);
+  text-align: end;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.cl:hover .cn {
+  background: var(--code-hover);
+}
+
+.cl.is-lit .cn {
+  background: var(--code-lit);
+  color: var(--text-2);
+}
+
+.ct {
+  padding-inline-end: 1.25rem;
+  white-space: pre;
+}
+
+.cl.has-error .cn {
+  color: var(--danger);
+}
+
+.cl.has-warning .cn {
+  color: var(--warn);
+}
+
+.cl.has-error .ct {
+  text-decoration: underline wavy var(--danger);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.cl.has-warning .ct {
+  text-decoration: underline wavy var(--warn);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.py-kw {
+  color: #b79cff;
+}
+
+.py-const {
+  color: #f59a4d;
+}
+
+.py-builtin {
+  color: #4cc3e0;
+}
+
+.py-str {
+  color: #62d594;
+}
+
+.py-num {
+  color: #f5b335;
+}
+
+.py-com {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.py-fn {
+  color: #7fb1ff;
+  font-weight: 500;
+}
+
+.py-call {
+  color: #9cc2ff;
+}
+
+.py-deco {
+  color: #ee6a93;
+}
+
+.py-op {
+  color: var(--text-3);
+}
+
+/* ---------- the Files tab ---------- */
+.ed-meter {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.ed-meter-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--bg-hover);
+}
+
+.ed-meter-bar > span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent-hi);
+  transition: width 0.3s;
+}
+
+.ed-files {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ed-files .ed-file {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.6rem 0.5rem 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.15s;
+}
+
+.ed-files .ed-file:hover {
+  background: var(--bg-panel);
+}
+
+.ed-file-pending {
+  opacity: 0.7;
+}
+
+.ed-thumb {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-field);
+  color: var(--text-2);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+button.ed-thumb:hover {
+  border-color: var(--accent-hi);
+}
+
+.ed-thumb-image {
+  background: repeating-conic-gradient(hsl(var(--hue) 9% 17%) 0% 25%, hsl(var(--hue) 9% 12%) 0% 50%) 50% / 12px 12px;
+}
+
+.ed-thumb-json {
+  color: var(--cat-data);
+}
+
+.ed-thumb-text {
+  color: var(--cat-info);
+}
+
+.ed-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ed-file-main {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ed-file-name {
+  overflow: hidden;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-file-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.7rem;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.ed-file-actions {
+  display: flex;
+  gap: 0.1rem;
+}
+
+.ed-drop {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: center;
+  justify-items: center;
+  gap: 0.3rem;
+  margin: 0.85rem;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.ed-drop:hover {
+  border-color: var(--accent-hi);
+  background: var(--accent-wash);
+}
+
+.ed-drop > .ph-fill {
+  color: var(--accent-hi);
+  font-size: 2rem;
+}
+
+.ed-drop strong {
+  color: var(--text);
+}
+
+.ed-drop.is-compact {
+  flex: none;
+  padding: 0.85rem 1rem;
+}
+
+.ed-drop.is-compact > .ph-fill {
+  display: none;
+}
+
+.ed-dropveil {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.75rem;
+  border: 3px dashed var(--accent-hi);
+  background: rgb(15 14 17 / 0.82);
+  color: #fff;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.ed-dropveil > .ph-fill {
+  color: var(--accent-hi);
+  font-size: 3.5rem;
+}
+
+.ed-preview-frame {
+  display: grid;
+  place-items: center;
+  max-height: 60vh;
+  padding: 0.75rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: repeating-conic-gradient(hsl(var(--hue) 9% 17%) 0% 25%, hsl(var(--hue) 9% 12%) 0% 50%) 50% / 16px 16px;
+}
+
+.ed-preview-img {
+  max-width: 100%;
+  max-height: 54vh;
+  object-fit: contain;
+}
+
+.ed-preview-text {
+  max-height: 55vh;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--code-bg);
+  color: hsl(var(--hue) 14% 88%);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---------- the Problems tab ---------- */
+.ed-problems-list {
+  display: grid;
+  flex: 1 1 0;
+  align-content: start;
+  gap: 0.4rem;
+  min-height: 0;
+  padding: 0.65rem;
+  overflow: auto;
+}
+
+.ed-problem {
+  --tone: var(--warn);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--tone) 32%, transparent);
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--tone) 9%, var(--bg-panel));
+  color: var(--text);
+  font-size: var(--fs-sm);
+  line-height: 1.45;
+  text-align: start;
+}
+
+.ed-problem.is-error {
+  --tone: var(--danger);
+}
+
+.ed-problem > .ph-fill:first-child {
+  margin-top: 0.1rem;
+  color: var(--tone);
+  font-size: 1.2em;
+}
+
+.ed-problem-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ed-problem-go {
+  margin-top: 0.1rem;
+  color: var(--text-3);
+}
+
+button.ed-problem {
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+button.ed-problem:hover {
+  border-color: color-mix(in srgb, var(--tone) 60%, transparent);
+  background: color-mix(in srgb, var(--tone) 16%, var(--bg-panel));
+}
+
+button.ed-problem:hover .ed-problem-go {
+  color: var(--text);
+}
+
+.ed-allgood {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.ed-allgood > .ph-fill {
+  color: var(--ok);
+  font-size: 2.5rem;
+}
+
+.ed-allgood p {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* ---------- the console ---------- */
+.ed-console {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--code-bg);
+}
+
+.ed-console-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  padding: 0.3rem 0.5rem 0.3rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-raised);
+}
+
+.ed-console-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.ed-console-head h2 .ph-fill {
+  color: var(--text-3);
+}
+
+.ed-run-state {
+  --tone: var(--text-2);
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tone) 14%, transparent);
+  color: var(--tone);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ed-run-state[data-state="running"] {
+  --tone: var(--ok);
+}
+
+.ed-run-state[data-state="starting"],
+.ed-run-state[data-state="stopping"] {
+  --tone: var(--accent-hi);
+}
+
+.ed-run-state[data-state="crashed"],
+.ed-run-state[data-state="error"] {
+  --tone: var(--danger);
+}
+
+.ed-filters {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-sm);
+  background: var(--bg-field);
+}
+
+.ed-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ed-filter:hover {
+  color: var(--text);
+}
+
+.ed-filter[aria-pressed="true"] {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ed-filter .ed-count {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.625rem;
+}
+
+.ed-log {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 0.35rem 0;
+  overflow: auto;
+  font: 400 0.8125rem / 1.55 var(--font-mono);
+}
+
+.ed-log:focus-visible {
+  outline-offset: -2px;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: auto 3.2rem minmax(0, 1fr);
+  gap: 0 0.6rem;
+  padding: 0.05rem 0.85rem;
+  border-inline-start: 3px solid transparent;
+}
+
+.log-time {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.log-level {
+  padding-top: 0.12rem;
+  color: var(--text-3);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.log-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lvl-info .log-level {
+  color: var(--accent-hi);
+}
+
+.lvl-warning {
+  border-inline-start-color: var(--warn);
+  background: color-mix(in srgb, var(--warn) 7%, transparent);
+}
+
+.lvl-warning .log-level {
+  color: var(--warn);
+}
+
+.lvl-error {
+  border-inline-start-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+}
+
+.lvl-error .log-level,
+.lvl-error .log-text {
+  color: var(--danger);
+}
+
+.lvl-system {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.lvl-system .log-level {
+  display: none; /* a line from the runner itself has no level to show, so its text sits next to the time */
+}
+
+.lvl-system .log-body {
+  grid-column: 2 / -1;
+}
+
+.log-body {
+  min-width: 0;
+}
+
+.log-source {
+  margin-inline-end: 0.55rem;
+  color: var(--text-3);
+  font-size: 0.6875rem;
+}
+
+.log-summary {
+  display: block;
+  font-weight: 600;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lvl-error .log-summary {
+  color: var(--danger);
+}
+
+.log-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.3rem 0 0.2rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent-solid) 15%, transparent);
+  color: var(--text);
+  font: 400 var(--fs-sm) / 1.45 var(--font-sans);
+  font-style: normal;
+}
+
+.log-note .ph-fill {
+  flex: none;
+  margin-top: 0.12rem;
+  color: var(--warn);
+}
+
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  margin: 0.1rem 0 0.2rem;
+}
+
+.log-action {
+  padding: 0.1rem 0;
+  border: 0;
+  background: none;
+  color: var(--accent-hi);
+  font: 600 0.75rem / 1.5 var(--font-sans);
+  cursor: pointer;
+}
+
+.log-action:hover {
+  text-decoration: underline;
+}
+
+.log-details {
+  margin: 0.3rem 0 0.25rem;
+  padding: 0.5rem 0.7rem;
+  overflow-x: auto;
+  border-radius: var(--r-sm);
+  background: var(--bg-field);
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.75rem;
+  white-space: pre;
+}
+
+.ed-run-btn.is-blocked:not(:disabled) {
+  opacity: 0.65;
+}
+
+.ed-run-state[data-state="idle"],
+.ed-run-state[data-state="stopped"] {
+  --tone: var(--text-2);
+}
+
+.log-hint {
+  padding: 1rem 0.85rem;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+}
+
+.ed-log[data-filter="warning"] .log-line:not(.lvl-warning),
+.ed-log[data-filter="error"] .log-line:not(.lvl-error) {
+  display: none;
+}
+
+.log-jump {
+  position: absolute;
+  right: 1rem;
+  bottom: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent-solid);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.4);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.log-jump:hover {
+  background: #0f62f0;
+}
+
+/* ---------- dialogs (the bots page has its own copy of these in bots.css) ---------- */
+.dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--bg-panel);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.6);
+}
+
+.dialog::backdrop {
+  background: rgb(8 7 10 / 0.72);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.dialog h2 {
+  font-size: var(--fs-xl);
+}
+
+.dialog-text {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.dialog-wide {
+  width: min(44rem, calc(100vw - 2rem));
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dialog-head h2 {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--fs-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dialog-view {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.choices {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.choice {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-field);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.choice strong {
+  font-size: 0.9375rem;
+}
+
+.choice span {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.choice:hover {
+  border-color: hsl(var(--hue) 8% 40%);
+  background: var(--bg-hover);
+}
+
+.choice-primary {
+  border-color: color-mix(in srgb, var(--accent-hi) 60%, transparent);
+  background: var(--accent-wash);
+}
+
+.choice-primary:hover {
+  border-color: var(--accent-hi);
+  background: rgb(23 109 255 / 0.22);
+}
+
+.choice-danger {
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
+.choice-danger:hover {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--bg-hover));
+}
+
+/* ---------- the phone bar ---------- */
+.ed-dock {
+  display: none;
+}
+
+/* ---------- smaller windows ---------- */
+@media (max-width: 64rem) {
+  .ed-bot-handle {
+    display: none;
+  }
+
+  .ed-run-btn:not(.ed-run-play) span,
+  .ed-get > summary span {
+    display: none;
+  }
+
+  .ed-get > summary.btn {
+    padding-inline: 0.55rem;
+  }
+}
+
+@media (max-width: 56rem) {
+  .ed-shell {
+    --rail-w: 4.1rem;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .ed-split {
+    display: none;
+  }
+
+  /* The blocks and the side panel share one cell. Whichever is not wanted stays laid out but hidden,
+     so the workspace never gets resized to nothing behind the panel. */
+  .ed-stage,
+  .ed-side {
+    grid-area: 1 / 1;
+  }
+
+  .ed-side {
+    z-index: 5;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .ed-shell[data-view="blocks"] .ed-side,
+  .ed-shell:not([data-view="blocks"]) .ed-stage {
+    visibility: hidden;
+  }
+
+  .ed-shell[data-view="console"] .ed-details,
+  .ed-shell:not([data-view="console"]) .ed-console {
+    display: none;
+  }
+
+  .ed-tabs {
+    display: none;
+  }
+
+  .ed-dock {
+    z-index: 6;
+    display: grid;
+    grid-area: 2 / 1;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding-bottom: env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+    background: var(--bg-raised);
+  }
+
+  .ed-dock button {
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    padding: 0.55rem 0.25rem 0.5rem;
+    border: 0;
+    background: transparent;
+    color: var(--text-3);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ed-dock button .ph-fill {
+    font-size: 1.35rem;
+  }
+
+  .ed-dock button[aria-pressed="true"] {
+    color: var(--accent-hi);
+  }
+
+  .ed-tools {
+    top: 0.5rem;
+    right: 0.75rem;
+  }
+
+  .ed-tools .ed-icon-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+
+  .ed-tip {
+    display: none;
+  }
+
+  .blocklyToolbox {
+    padding-block: 0.25rem;
+  }
+
+  .blocklyToolboxCategoryGroup {
+    padding-inline: 0.15rem;
+  }
+
+  .blocklyToolbox .blocklyToolboxCategoryLabel {
+    font-size: 0.625rem;
+  }
+
+  .ed-console-head h2 {
+    display: none;
+  }
+
+  .editor-page .toasts {
+    bottom: 4.75rem;
+  }
+}
+
+@media (max-width: 40rem) {
+  .ed-bar {
+    gap: 0.3rem;
+    padding-inline: 0.5rem;
+  }
+
+  .ed-bot-text,
+  .ed-problems {
+    display: none;
+  }
+
+  .ed-status span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ed-status {
+    padding: 0.35rem;
+    font-size: 1.1rem;
+  }
+
+  .ed-run-btn span {
+    display: none;
+  }
+
+  .ed-run {
+    gap: 0.25rem;
+  }
+
+  .ed-run-btn.btn-sm,
+  .ed-get > summary.btn {
+    min-width: 2.25rem;
+    padding-inline: 0;
+  }
+
+  .ed-get .menu-panel {
+    min-width: min(17rem, calc(100vw - 1rem));
+  }
+}
+
+/* ==========================================================================
+   Blockly, restyled to match. Blockly draws the blocks itself (colours come from the theme in blocks.js); this
+   section is the HTML around them: the category rail, the menus, the tooltips and the text inside blocks.
+   ========================================================================== */
+
+/* Blockly hides a scrollbar or a flyout with the display="none" attribute. A CSS rule beats an attribute, and app.css
+   gives every svg display:block, so say it again here or the hidden parts stay on screen. */
+svg[display="none"] {
+  display: none;
+}
+
+/* The category rail on the left: a coloured icon with the name underneath. */
+.blocklyToolbox {
+  width: var(--rail-w);
+  padding: 0.4rem 0;
+  border-inline-end: 1px solid var(--line);
+  scrollbar-width: none;
+}
+
+.blocklyToolbox::-webkit-scrollbar {
+  display: none;
+}
+
+.blocklyToolboxCategoryGroup {
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding-inline: 0.3rem;
+}
+
+.blocklyToolboxCategoryContainer {
+  display: block;
+}
+
+.blocklyToolbox .blocklyToolboxCategory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: auto;
+  margin: 0;
+  padding: 0.45rem 0.1rem 0.4rem;
+  border-radius: var(--r-md);
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+}
+
+.blocklyToolbox .blocklyToolboxCategory:not(.blocklyToolboxSelected):hover {
+  background: var(--bg-hover);
+}
+
+.blocklyToolbox .blocklyToolboxSelected {
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 1.5px var(--cat, var(--accent-hi));
+}
+
+.blocklyTreeRowContentContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+}
+
+.sff-cat-icon {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  background: var(--cat, var(--accent-hi));
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--cat, var(--accent-hi)) 55%, #000);
+  color: var(--ink-on-block);
+  font-size: 1.15rem;
+}
+
+.blocklyToolbox .blocklyToolboxCategoryLabel {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  color: var(--text-2);
+  font: 600 0.6875rem / 1.15 var(--font-sans);
+  overflow-wrap: break-word;
+  white-space: normal;
+  cursor: pointer;
+}
+
+.blocklyToolbox .blocklyToolboxSelected .blocklyToolboxCategoryLabel {
+  color: var(--text);
+}
+
+/* The flyout that opens next to the rail. */
+.blocklyFlyout {
+  box-shadow: 10px 0 30px rgb(0 0 0 / 0.35);
+}
+
+.blocklyFlyoutButton {
+  fill: var(--accent-solid);
+}
+
+/* The stroke pads the button out beyond the text, with round corners. */
+.blocklyFlyoutButtonBackground,
+.blocklyFlyoutButtonShadow {
+  stroke: var(--accent-solid);
+  stroke-width: 8px;
+  stroke-linejoin: round;
+}
+
+.blocklyFlyoutButtonShadow {
+  fill: var(--accent-lo);
+  stroke: var(--accent-lo);
+}
+
+@media (hover: hover) {
+  .blocklyFlyoutButton:hover {
+    fill: #0f62f0;
+  }
+
+  .blocklyFlyoutButton:hover .blocklyFlyoutButtonBackground {
+    stroke: #0f62f0;
+  }
+}
+
+.blocklyFlyoutButton .blocklyText {
+  fill: #fff;
+  font-weight: 600;
+}
+
+.blocklyFlyoutLabelText {
+  fill: var(--text-2) !important;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.blocklyFlyoutScrollbar .blocklyScrollbarHandle {
+  fill-opacity: 0.3 !important;
+}
+
+/* Text inside blocks: dark ink on the pale block colours; the white pills hold dark ink too. */
+.blocklyText,
+.blocklyNonEditableText > text,
+.blocklyEditableText > text,
+.blocklyNonEditableText > g > text,
+.blocklyEditableText > g > text {
+  fill: var(--ink-on-block);
+}
+
+.blocklyDropdownText {
+  fill: #fff !important;
+}
+
+.blocklyHtmlInput {
+  color: var(--ink-on-block);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+/* A symbol used as a label inside a block (the robot and lock on the first and last blocks). */
+.sff-glyph {
+  font-family: "Phosphor-Fill" !important;
+  font-weight: 400 !important;
+}
+
+/* A block with a problem. */
+.sff-error > .blocklyPath,
+.sff-error > .blocklyPath.blocklyBlockBackground {
+  stroke: var(--danger);
+  stroke-width: 3px;
+}
+
+/* The file picker on a block: red when its file has been deleted, quiet when nothing is chosen yet. */
+.sff-missing .blocklyDropdownText {
+  fill: #ffb9bd !important;
+  text-decoration: line-through;
+}
+
+.sff-missing > rect {
+  stroke: var(--danger);
+  stroke-width: 1.5;
+}
+
+.sff-empty .blocklyDropdownText {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* Menus: the dropdown on a block, the right-click menu, and the text-entry box. */
+.blocklyDropDownDiv {
+  border-radius: var(--r-md);
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.5);
+  overflow: hidden;
+}
+
+.blocklyDropDownDiv.blocklyDropDownDiv,
+.blocklyWidgetDiv .blocklyMenu {
+  border: 1px solid var(--line-strong) !important;
+  background: var(--bg-panel) !important;
+}
+
+.blocklyMenu {
+  padding: 0.3rem;
+  border-radius: var(--r-md);
+  background: var(--bg-panel);
+  color: var(--text);
+  font: 500 0.875rem / 1.4 var(--font-sans);
+}
+
+.blocklyMenuItem {
+  padding: 0.4rem 1.5rem 0.4rem 1.9rem;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+.blocklyDropDownDiv .blocklyMenuItemContent,
+.blocklyMenuItemContent {
+  color: inherit !important;
+}
+
+.blocklyMenuItemHighlight,
+.blocklyMenuItem:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.blocklyMenuItemDisabled {
+  color: var(--text-3);
+  opacity: 0.6;
+}
+
+.blocklyMenuItemSelected .blocklyMenuItemCheckbox {
+  filter: invert(1);
+}
+
+.blocklyContextMenu {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.5);
+}
+
+.blocklyMenuSeparator {
+  border-color: var(--line);
+}
+
+.blocklyTooltipDiv {
+  max-width: 22rem;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-panel);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.5);
+  color: var(--text);
+  font: 400 0.8125rem / 1.45 var(--font-sans);
+  opacity: 1;
+}
+
+/* The little speech bubble that explains a warning on a block. */
+.blocklyBubbleBackground {
+  fill: var(--bg-panel);
+  stroke: var(--line-strong);
+}
+
+.blocklyBubbleArrow {
+  fill: var(--bg-panel);
+  stroke: var(--line-strong);
+}
+
+.blocklyBubbleText,
+.blocklyBubbleText text {
+  fill: var(--text);
+}
+
+/* Blockly's own keyboard focus ring, in our blue. */
+.blocklyActiveFocus,
+.blocklyActiveFocus:focus {
+  outline-color: var(--accent-hi);
+}
+
+.blocklyToolbox:focus,
+.blocklyToolboxCategoryGroup:focus {
+  outline: none;
+}
+
+.blocklyToolbox:focus-visible .blocklyToolboxSelected {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: -2px;
+}
+
+.blocklyToast {
+  border-color: var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-panel);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+.blocklyToast .blocklyToastCloseButton {
+  color: var(--text-2);
+}
+
+@media (forced-colors: active) {
+  .ed-icon-btn,
+  .ed-tab,
+  .ed-filter {
+    border: 1px solid ButtonText;
+  }
+}

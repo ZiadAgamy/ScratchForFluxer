@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}My bots - {{ app_name }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{{ static('css/bots.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="container page">
+  <header class="page-head">
+    <div>
+      <h1>My bots</h1>
+      <p class="lead">Pick a bot to open its blocks, or add another one.</p>
+    </div>
+    {% if bots %}
+    <a class="btn btn-primary" href="/bots/new">{{ icon("plus") }}<span>Add a bot</span></a>
+    {% endif %}
+  </header>
+
+  {% if bots %}
+  <ul class="bot-list panel">
+    {% for bot in bots %}
+    <li class="bot-row" data-bot-id="{{ bot.id }}" data-bot-name="{{ bot.name }}">
+      <img class="bot-avatar" src="{{ bot.avatar_url }}" alt="" width="48" height="48" referrerpolicy="no-referrer" decoding="async" loading="lazy" data-fallback>
+      <div class="bot-main">
+        <a class="bot-name" href="/bots/{{ bot.id }}/edit">{{ bot.name }}</a>
+        <div class="bot-meta">
+          <span>@{{ bot.bot_username }}</span>
+          <span class="bot-token">{{ icon("lock-key") }}<span>Token ends in <span data-role="last4">{{ bot.token_last4 }}</span></span></span>
+          <span>Edited {{ bot.updated_at | time_ago }}</span>
+        </div>
+      </div>
+      <div class="bot-actions">
+        <a class="btn btn-primary btn-sm" href="/bots/{{ bot.id }}/edit">{{ icon("puzzle-piece") }}<span>Open blocks</span></a>
+        <details class="menu bot-menu">
+          <summary class="btn btn-ghost btn-sm" aria-label="More actions for {{ bot.name }}">{{ icon("dots-three-vertical") }}</summary>
+          <div class="menu-panel">
+            <button class="menu-item" type="button" data-action="rename">{{ icon("pencil-simple") }}<span>Rename</span></button>
+            <button class="menu-item" type="button" data-action="token">{{ icon("key") }}<span>Replace token</span></button>
+            <button class="menu-item menu-item-danger" type="button" data-action="remove">{{ icon("trash") }}<span>Remove bot</span></button>
+          </div>
+        </details>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="hint list-count">{{ bots | length }} of {{ max_bots }} bots used.</p>
+  {% else %}
+  <div class="empty panel">
+    <div class="empty-block" aria-hidden="true"><div class="blk">{{ icon("plus") }}</div></div>
+    <h2>Add your first bot</h2>
+    <p>Paste a bot token from Fluxer and start snapping blocks together. Your token is stored encrypted and is never shown again.</p>
+    <a class="btn btn-primary btn-lg" href="/bots/new">{{ icon("plus") }}<span>Add a bot</span></a>
+  </div>
+  {% endif %}
+
+  <section class="your-data" aria-labelledby="your-data-title">
+    <div>
+      <h2 id="your-data-title">Your data</h2>
+      <p>Everything we hold about you: your Fluxer name and avatar, your bots, their encrypted tokens, their blocks and the files you uploaded. You can delete all of it at any time.</p>
+    </div>
+    <button class="btn btn-danger" type="button" data-action="delete-account">{{ icon("trash") }}<span>Delete my data</span></button>
+  </section>
+</section>
+
+<dialog class="dialog" id="dlg-rename" aria-labelledby="dlg-rename-title">
+  <form class="dialog-body" data-dialog-form="rename" novalidate>
+    <h2 id="dlg-rename-title">Rename bot</h2>
+    <div class="field">
+      <label for="rename-input">Name</label>
+      <input class="input" id="rename-input" name="name" maxlength="80" autocomplete="off" required>
+      <span class="hint">This name is only used here. Your bot's name in Fluxer doesn't change.</span>
+    </div>
+    <p class="field-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+      <button class="btn btn-primary" type="submit">Save name</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dialog" id="dlg-token" aria-labelledby="dlg-token-title">
+  <form class="dialog-body" data-dialog-form="token" novalidate>
+    <h2 id="dlg-token-title">Replace token</h2>
+    <p class="dialog-text">Use this after you reset the token in Fluxer. It must belong to the same bot. If the bot is running, it is stopped; press Run in the editor to start it with the new token.</p>
+    <div class="field">
+      <label for="token-replace-input">New bot token</label>
+      <input class="input input-mono" id="token-replace-input" name="token" type="password" autocomplete="off" spellcheck="false" data-lpignore="true" data-1p-ignore required>
+    </div>
+    <p class="field-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+      <button class="btn btn-primary" type="submit">Check and replace</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dialog" id="dlg-remove" aria-labelledby="dlg-remove-title">
+  <form class="dialog-body" data-dialog-form="remove" novalidate>
+    <h2 id="dlg-remove-title">Remove this bot?</h2>
+    <p class="dialog-text"><strong data-role="remove-name"></strong> will be stopped if it is running, and removed from Scratch For Fluxer with its saved token, its blocks and its uploaded files. Your bot in Fluxer is not touched. This can't be undone.</p>
+    <p class="field-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" type="button" data-close>Keep it</button>
+      <button class="btn btn-danger" type="submit">Remove bot</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dialog" id="dlg-account" aria-labelledby="dlg-account-title">
+  <form class="dialog-body" data-dialog-form="account" novalidate>
+    <h2 id="dlg-account-title">Delete all your data?</h2>
+    <p class="dialog-text">This stops your running bots, deletes your bots, their saved tokens, blocks and uploaded files, and logs you out. It can't be undone. Your Fluxer account and bots in Fluxer are not touched.</p>
+    <div class="field">
+      <label for="account-confirm">Type your Fluxer username (<strong>{{ user.username }}</strong>) to confirm</label>
+      <input class="input" id="account-confirm" name="confirm" autocomplete="off" spellcheck="false" required>
+    </div>
+    <p class="field-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+      <button class="btn btn-danger" type="submit">Delete everything</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ static('js/bots.js') }}" defer></script>
+{% endblock %}

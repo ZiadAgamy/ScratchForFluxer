@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}Log in - {{ app_name }}{% endblock %}
+{% block robots %}noindex,follow{% endblock %}
+
+{% block content %}
+<section class="auth container">
+  <div class="auth-panel panel">
+    <img class="auth-logo" src="{{ static('img/logo.png') }}" alt="" width="52" height="56">
+    <h1>Log in with Fluxer</h1>
+    <p class="lead">Your Fluxer account is your login here. There is no separate password to remember.</p>
+
+    {% if not login_ready %}
+    <div class="alert alert-warn" role="alert">
+      {{ icon("warning") }}
+      <div><strong>Login isn't set up on this server yet.</strong> Add <code>FLUXER_CLIENT_ID</code> and <code>FLUXER_CLIENT_SECRET</code> to the environment (the README shows where to find them), then reload this page.</div>
+    </div>
+    {% endif %}
+
+    <a class="btn btn-primary btn-lg btn-block" href="/auth/login?next={{ next | urlencode }}"{% if not login_ready %} aria-disabled="true" tabindex="-1"{% endif %}>
+      {{ icon("sign-in") }}<span>Continue with Fluxer</span>
+    </a>
+
+    <ul class="facts">
+      <li>{{ icon("user-circle") }}<span>We ask Fluxer for your basic profile only: your name, avatar and ID.</span></li>
+      <li>{{ icon("lock-key") }}<span>Fluxer sends you back here after you approve. We don't keep Fluxer's access token.</span></li>
+      <li>{{ icon("door-open") }}<span>You can log out, or delete your data, whenever you like.</span></li>
+    </ul>
+  </div>
+</section>
+{% endblock %}

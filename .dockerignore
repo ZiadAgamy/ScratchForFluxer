@@ -1,0 +1,6 @@
+# Only what the runner image needs goes into the build (see deploy/runner/Dockerfile).
+*
+!requirements.txt
+!scratch_fluxer
+**/__pycache__
+**/*.pyc

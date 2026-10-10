@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- The link-preview card. scripts/make_og.py renders this at 1200x630 into public/static/img/og.png.
+     It reuses the site's own CSS, so the preview looks like the product. Edit the words below and re-run the script. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scratch For Fluxer: preview card</title>
+  <link rel="stylesheet" href="/static/css/fonts.css">
+  <link rel="stylesheet" href="/static/vendor/phosphor/fill/style.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/landing.css">
+  <style>
+    html { font-size: 20px; }
+    body { width: 1200px; height: 630px; min-height: 0; overflow: hidden; }
+    .card { position: relative; display: grid; grid-template-columns: 1fr 25rem; gap: 3.5rem; align-items: center; width: 1200px; height: 630px; padding: 0 4.25rem; }
+    .card::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(circle, hsl(var(--hue) 8% 24%) 1px, transparent 1.6px); background-size: 24px 24px;
+      -webkit-mask-image: radial-gradient(60% 90% at 80% 50%, #000 10%, transparent 100%); mask-image: radial-gradient(60% 90% at 80% 50%, #000 10%, transparent 100%); }
+    .left, .right { position: relative; }
+    .logo { height: 5.2rem; width: auto; margin-bottom: 1.6rem; }
+    h1 { font-size: 3.6rem; line-height: 1.02; letter-spacing: -0.03em; }
+    .tag { max-width: 24rem; margin-top: 1.1rem; color: var(--text-2); font-size: 1.15rem; line-height: 1.45; }
+    .win { border: 1px solid var(--line-strong); border-radius: var(--r-lg); background: var(--bg-panel); box-shadow: 0 0 0 1px rgb(0 0 0 / 0.45), 0 30px 60px -20px rgb(0 0 0 / 0.8); overflow: hidden; }
+    .win .workspace { padding: 1.1rem 1rem 1.2rem; gap: 1.2rem; }
+    .win .code { padding-block: 0.6rem 0.8rem; font-size: 0.74rem; }
+    .win .pane-code { border-top: 1px solid var(--line); }
+    .bump { position: absolute; left: 4.25rem; bottom: 0; width: 3rem; height: 0.9rem; background: var(--accent-solid); clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="left">
+      <img class="logo" src="/static/img/logo.png" alt="">
+      <h1>Scratch For Fluxer</h1>
+      <p class="tag">Snap blocks together, read the Python they write, then run your Fluxer bot.</p>
+    </div>
+    <div class="right">
+      <div class="win">
+        <div class="workspace">
+          <div class="stack">
+            <div class="blk blk--events blk--hat"><span>when the command</span><span class="blk-field">ping</span><span>is used</span></div>
+            <div class="blk blk--messages"><span>reply with</span><span class="blk-field">Pong!</span></div>
+          </div>
+        </div>
+        <div class="pane-code">
+          <div class="code">
+            <code class="ln"><span class="tok-d">@bot.command</span>()</code>
+            <code class="ln"><span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">ping</span>(ctx):</code>
+            <code class="ln">    <span class="tok-k">await</span> ctx.reply(<span class="tok-s">"Pong!"</span>)</code>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bump"></div>
+  </div>
+</body>
+</html>

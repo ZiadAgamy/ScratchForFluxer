@@ -1,0 +1,58 @@
+/* Privacy page: plain, readable prose. */
+
+.prose {
+  max-width: 46rem;
+  padding-block: clamp(2rem, 6vw, 4rem) clamp(3rem, 8vw, 5rem);
+}
+
+.prose-head {
+  margin-bottom: 2.5rem;
+}
+
+.prose-head h1 {
+  font-size: var(--fs-3xl);
+}
+
+.prose-head .lead {
+  margin-top: 0.75rem;
+  color: var(--text-2);
+  font-size: var(--fs-lg);
+}
+
+.prose section {
+  padding-block: 1.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.prose h2 {
+  margin-bottom: 0.9rem;
+  font-size: var(--fs-xl);
+}
+
+.prose ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  color: var(--text-2);
+}
+
+.prose li::marker {
+  color: var(--text-3);
+}
+
+.prose strong {
+  color: var(--text);
+}
+
+.prose code {
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--bg-field);
+  color: var(--text);
+}
+
+.prose p {
+  color: var(--text-2);
+}

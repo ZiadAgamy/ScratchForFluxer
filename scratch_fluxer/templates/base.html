@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}Learn how Fluxer bots work by snapping blocks together. Drag blocks, read the real Python they write, then run your bot.{% endblock %}">
+  <meta name="robots" content="{% block robots %}index,follow{% endblock %}">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0f0e11">
+  {%- if user %}
+  <meta name="csrf-token" content="{{ user.csrf }}">
+  {%- endif %}
+  {% block meta %}{% endblock %}
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/img/logo-192.png">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="preload" href="/static/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/ibm-plex-sans-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/vendor/phosphor/fill/Phosphor-Fill.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ static('css/fonts.css') }}">
+  <link rel="stylesheet" href="{{ static('vendor/phosphor/fill/style.css') }}">
+  <link rel="stylesheet" href="{{ static('css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main">Skip to content</a>
+  {% block header %}{% include "partials/header.html" %}{% endblock %}
+  <main id="main">
+    {% block content %}{% endblock %}
+  </main>
+  {% block footer %}{% include "partials/footer.html" %}{% endblock %}
+  <script src="{{ static('js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

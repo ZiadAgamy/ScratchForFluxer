@@ -1,0 +1,42 @@
+# The runner, started the careful way. From the project folder:
+#
+#     export RUNNER_SECRET="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+#     docker compose -f deploy/runner/docker-compose.yml up -d --build
+#
+# Put an HTTPS reverse proxy (Caddy, nginx, your host's own) in front of port 8080: bot tokens travel to the runner,
+# so the site only talks to it over https://. Then set RUNNER_URL and RUNNER_SECRET on the site (see README.md here).
+
+services:
+  runner:
+    build:
+      context: ../..
+      dockerfile: deploy/runner/Dockerfile
+    image: sff-runner
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080" # only the reverse proxy on this machine can reach it
+    environment:
+      RUNNER_SECRET: ${RUNNER_SECRET:?set RUNNER_SECRET to a long random string (the same one goes on the site)}
+      RUNNER_MAX_CONCURRENT: ${RUNNER_MAX_CONCURRENT:-8} # bots running at the same time
+      RUNNER_MAX_PER_USER: ${RUNNER_MAX_PER_USER:-2} # ... per person
+      RUNNER_MEMORY_MB: ${RUNNER_MEMORY_MB:-384} # what one bot may use
+      RUNNER_MAX_RUN_SECONDS: ${RUNNER_MAX_RUN_SECONDS:-21600} # a bot is stopped after this long (6 hours)
+
+    # Everything below makes a bad bot less of a problem. None of it is needed for the runner to work.
+    user: "0:0" # root, to give each bot a user of its own (RUNNER_UID_BASE, set in the Dockerfile) ...
+    cap_drop: [ALL]
+    cap_add: # ... and nothing but what that needs
+      - CHOWN # give the bot its folder
+      - DAC_OVERRIDE # clear that folder afterwards, whatever the bot put in it
+      - KILL # stop the bot
+      - SETGID # start the bot as its own user
+      - SETUID
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/sff/runs:mode=0700,size=512m # the bots' folders; a bot can never use more disk than this
+      - /tmp:size=64m
+    pids_limit: 1024
+    mem_limit: ${RUNNER_MEM_LIMIT:-3500m} # about RUNNER_MAX_CONCURRENT x RUNNER_MEMORY_MB, plus some for the runner
+    cpus: ${RUNNER_CPUS:-2}

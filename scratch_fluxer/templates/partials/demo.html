@@ -1,0 +1,89 @@
+{#- The hero demo. Everything works without JavaScript as a still picture; landing.js makes it interactive.
+    The Python pane is written out by hand here so the page is never blank. landing.js writes the same
+    markup (same classes) when a value changes, and tests/test_landing_browser.py checks that the two agree. -#}
+{% from "partials/macros.html" import icon %}
+<div class="demo" id="demo" data-prefix="{{ demo.prefix }}" data-reserved='{{ reserved | tojson }}' role="group" aria-label="Interactive example of a bot made from blocks">
+  <div class="demo-bar">
+    <span class="demo-title">{{ icon("robot") }}<span>My first bot</span></span>
+    <div class="demo-controls" role="group" aria-label="Run controls">
+      <button class="btn btn-sm demo-btn" type="button" data-act="run" disabled>{{ icon("play") }}<span>Run</span></button>
+      <button class="btn btn-sm demo-btn" type="button" data-act="restart" disabled>{{ icon("arrow-clockwise") }}<span>Restart</span></button>
+      <button class="btn btn-sm demo-btn" type="button" data-act="stop" disabled>{{ icon("stop") }}<span>Stop</span></button>
+    </div>
+    <span class="demo-status" data-role="status" data-status="stopped" role="status"><span class="dot" aria-hidden="true"></span><span data-role="status-text">Offline</span></span>
+  </div>
+
+  <div class="demo-grid">
+    <div class="pane pane-blocks" role="group" aria-labelledby="demo-h-blocks">
+      <p id="demo-h-blocks" class="pane-title">{{ icon("puzzle-piece") }}<span>Blocks</span><span class="pane-note">Try editing the white boxes</span></p>
+      <div class="workspace">
+        <div class="stack">
+          <div class="blk blk--events blk--hat" data-block="ready"><span>when the bot is ready</span></div>
+          <div class="blk blk--bot" data-block="print">
+            <span>write</span>
+            <label class="blk-field"><span class="blk-size" aria-hidden="true">{{ demo.ready }}</span><input data-field="ready" value="{{ demo.ready }}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Text to write to the console"></label>
+            <span>to the console</span>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="blk blk--events blk--hat" data-block="cmd">
+            <span>when the command</span>
+            <label class="blk-field"><span class="blk-size" aria-hidden="true">{{ demo.command }}</span><input data-field="command" value="{{ demo.command }}" maxlength="24" spellcheck="false" autocomplete="off" aria-label="Command name"></label>
+            <span>is used</span>
+          </div>
+          <div class="blk blk--messages" data-block="reply">
+            <span>reply with</span>
+            <label class="blk-field"><span class="blk-size" aria-hidden="true">{{ demo.reply }}</span><input data-field="reply" value="{{ demo.reply }}" maxlength="60" spellcheck="false" autocomplete="off" aria-label="Reply text"></label>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="blk blk--bot blk--locked" data-block="run" title="Your token is stored encrypted. No block can read it.">
+            {{ icon("lock-key") }}<span>log in with the saved bot token</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane pane-code" role="group" aria-labelledby="demo-h-code">
+      <p id="demo-h-code" class="pane-title">{{ icon("file-py") }}<span>Python</span><span class="pane-note">Written for you</span></p>
+      <div class="code" data-role="code" tabindex="0" role="region" aria-label="The Python the blocks write">
+        {#- keep this on one line per <code>: no whitespace between the lines, landing.js writes them the same way -#}
+        <code class="ln" data-block="setup"><span class="tok-k">import</span> os</code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="setup"><span class="tok-k">import</span> fluxer</code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="setup">bot = fluxer.Bot(</code>
+        <code class="ln" data-block="setup">    command_prefix=<span class="tok-s">"{{ demo.prefix }}"</span>,</code>
+        <code class="ln" data-block="setup">    intents=fluxer.Intents.default(),</code>
+        <code class="ln" data-block="setup">)</code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="ready"><span class="tok-d">@bot.event</span></code>
+        <code class="ln" data-block="ready"><span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">on_ready</span>():</code>
+        <code class="ln" data-block="print">    <span class="tok-b">print</span>(<span class="tok-s">"{{ demo.ready }}"</span>)</code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="cmd"><span class="tok-d">@bot.command</span>()</code>
+        <code class="ln" data-block="cmd"><span class="tok-k">async</span> <span class="tok-k">def</span> <span class="tok-f">{{ demo.command }}</span>(ctx):</code>
+        <code class="ln" data-block="reply">    <span class="tok-k">await</span> ctx.reply(<span class="tok-s">"{{ demo.reply }}"</span>)</code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="setup"></code>
+        <code class="ln" data-block="run">bot.run(os.environ[<span class="tok-s">"FLUXER_TOKEN"</span>])</code>
+      </div>
+    </div>
+
+    <div class="pane pane-chat" role="group" aria-labelledby="demo-h-chat">
+      <p id="demo-h-chat" class="pane-title">{{ icon("chat-circle-text") }}<span>Chat</span></p>
+      <div class="chat-log" data-role="chat" role="log" aria-live="off" aria-label="Chat"><p class="chat-empty">Send your bot a message. Try {{ demo.prefix }}{{ demo.command }}</p></div>
+      <form class="chat-form" data-role="chat-form" autocomplete="off">
+        <input class="chat-input" name="message" value="{{ demo.prefix }}{{ demo.command }}" maxlength="80" spellcheck="false" aria-label="Message to send to the bot">
+        <button class="btn btn-sm btn-primary" type="submit" aria-label="Send message" disabled>{{ icon("paper-plane-tilt") }}</button>
+      </form>
+    </div>
+
+    <div class="pane pane-console" role="group" aria-labelledby="demo-h-console">
+      <p id="demo-h-console" class="pane-title">{{ icon("terminal-window") }}<span>Console</span><span class="pane-note pane-hint" data-role="hint" hidden>Press Restart to use your changes</span></p>
+      <div class="console" data-role="console" role="log" aria-live="off" aria-label="Console"><p class="console-empty">Press Run to start your bot.</p></div>
+    </div>
+  </div>
+</div>

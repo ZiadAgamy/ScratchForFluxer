@@ -1,0 +1,18 @@
+{% from "partials/macros.html" import icon %}
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <img src="{{ static('img/logo.png') }}" alt="" width="14" height="16" decoding="async" loading="lazy">
+      <span>{{ app_name }} helps you learn the Fluxer bot API with blocks.</span>
+    </div>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/privacy">Privacy</a>
+      <a href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">Fluxer</a>
+      {%- if community_url %}
+      <a class="footer-community" href="{{ community_url }}" target="_blank" rel="noopener noreferrer">{{ icon("users-three") }}<span>Community server</span></a>
+      {%- endif %}
+      <a href="https://github.com/akarealemil/fluxer.py" target="_blank" rel="noopener noreferrer">fluxer.py on GitHub</a>
+      <a href="https://phosphoricons.com" target="_blank" rel="noopener noreferrer">Icons by Phosphor</a>
+    </nav>
+  </div>
+</footer>

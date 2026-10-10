@@ -1,0 +1,17 @@
+-r requirements.txt
+
+# Tests
+pytest>=8.0
+pytest-asyncio>=0.24
+respx>=0.21
+httpx2>=2.0  # what Starlette's TestClient prefers (avoids a deprecation warning)
+
+# Style checks: `ruff check . && ruff format --check .`
+ruff>=0.16,<0.17
+
+# Browser tests (optional): the landing demo, the editor and the console are exercised in headless Chromium
+#   after installing: playwright install chromium
+playwright>=1.45
+
+# scripts/make_icons.py and scripts/make_og.py (regenerate icons and the link-preview image from your logo)
+pillow>=10.0

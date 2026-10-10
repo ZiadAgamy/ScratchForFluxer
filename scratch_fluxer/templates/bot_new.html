@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}Add a bot - {{ app_name }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{{ static('css/bots.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="container page">
+  <a class="back-link" href="/bots">{{ icon("arrow-left") }}<span>My bots</span></a>
+  <header class="page-head">
+    <div>
+      <h1>Add a bot</h1>
+      <p class="lead">Bring a bot you made in Fluxer. Paste its token and you can start building with blocks.</p>
+    </div>
+  </header>
+
+  <div class="onboard">
+    <ol class="steps" aria-label="How to add a bot">
+      <li>
+        <span class="step-mark" aria-hidden="true">1</span>
+        <div>
+          <h2>Create a bot in Fluxer</h2>
+          <p>Open Fluxer, go to your User Settings and find Applications. Create an application, then add a bot to it.</p>
+          <a class="btn btn-sm" href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ icon("arrow-square-out") }}<span>Open Fluxer</span></a>
+        </div>
+      </li>
+      <li>
+        <span class="step-mark" aria-hidden="true">2</span>
+        <div>
+          <h2>Copy its token</h2>
+          <p>In your application's settings, press Regenerate next to the bot token and copy the new token. Treat it like a password: whoever has it can control your bot.</p>
+        </div>
+      </li>
+      <li>
+        <span class="step-mark" aria-hidden="true">3</span>
+        <div>
+          <h2>Paste it here</h2>
+          <p>We check it with Fluxer first. After that it is kept encrypted, and it is never shown again.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="onboard-panel panel">
+      {% if at_limit %}
+        <div class="alert alert-warn">
+          {{ icon("warning") }}
+          <div><strong>You've reached the limit of {{ max_bots }} bots.</strong> Remove one on <a href="/bots">My bots</a> to add another.</div>
+        </div>
+      {% else %}
+        <noscript>
+          <div class="alert alert-warn">{{ icon("warning") }}<div>This page needs JavaScript to check your token.</div></div>
+        </noscript>
+
+        <div id="state-paste">
+          <div class="field">
+            <label for="token-input">Bot token</label>
+            <div class="input-group">
+              <input class="input input-mono" id="token-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="1234567890123456.AbCdEf…" data-lpignore="true" data-1p-ignore aria-describedby="token-hint">
+              <button class="btn btn-ghost btn-icon" id="token-toggle" type="button" aria-label="Show token" aria-pressed="false">{{ icon("eye") }}</button>
+            </div>
+            <span class="hint" id="token-hint">It starts with your application's ID, then a dot, then a long secret.</span>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" id="check-btn" type="button" disabled>{{ icon("shield-check") }}<span>Check token</span></button>
+        </div>
+
+        <div id="state-confirm" hidden>
+          <div class="bot-preview">
+            <img id="bot-avatar" class="bot-avatar" src="/static/img/avatar-fallback.svg" alt="" width="56" height="56" referrerpolicy="no-referrer" data-fallback>
+            <div>
+              <div class="bot-preview-name" id="bot-app-name"></div>
+              <div class="bot-meta"><span id="bot-username"></span><span class="chip">{{ icon("shield-check") }}<span>Owned by you</span></span></div>
+            </div>
+          </div>
+          <div class="field" id="name-field">
+            <label for="bot-name-input">Name in {{ app_name }}</label>
+            <input class="input" id="bot-name-input" maxlength="80" autocomplete="off">
+            <span class="hint">Only used here. You can change it later.</span>
+          </div>
+          <div class="alert alert-warn" id="already-box" hidden>
+            {{ icon("warning") }}
+            <div>This bot is already in your list as <strong id="already-name"></strong>. <a id="already-link" href="/bots">Open it</a> or replace its token from the menu on My bots.</div>
+          </div>
+          <div class="confirm-actions">
+            <button class="btn btn-primary btn-lg" id="save-btn" type="button">{{ icon("floppy-disk") }}<span>Save bot</span></button>
+            <button class="btn btn-ghost" id="retry-btn" type="button">Use a different token</button>
+          </div>
+        </div>
+
+        <p class="field-error" id="flash" role="alert" hidden></p>
+      {% endif %}
+
+      <ul class="facts">
+        <li>{{ icon("lock-key") }}<span>The token is encrypted before it is stored. Only its last four characters are kept readable, so you can tell tokens apart.</span></li>
+        <li>{{ icon("shield-check") }}<span>You can only add a bot your own Fluxer account owns.</span></li>
+        <li>{{ icon("trash") }}<span>Remove a bot, or all your data, whenever you like.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  {% if not at_limit %}<script src="{{ static('js/onboard.js') }}" defer></script>{% endif %}
+{% endblock %}

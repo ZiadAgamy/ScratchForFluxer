@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}{{ title }} - {{ app_name }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<section class="notice container">
+  <div class="loose-block" aria-hidden="true"><div class="blk">{{ icon("warning") }}</div></div>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ action_href or '/' }}">{{ action_label or "Back home" }}</a>
+  </div>
+</section>
+{% endblock %}

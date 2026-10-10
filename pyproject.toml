@@ -1,0 +1,36 @@
+[project]
+name = "scratch-for-fluxer"
+version = "0.1.0"
+description = "Learn how the Fluxer bot API works by snapping blocks together. Blocks compile to real fluxer.py code."
+readme = "README.md"
+requires-python = ">=3.10"
+
+# Vercel: where the FastAPI instance named `app` lives (index.py re-exports the same object).
+[tool.vercel]
+entrypoint = "scratch_fluxer.main:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "browser: needs Playwright + Chromium (skipped automatically when unavailable)",
+    "e2e: spawns a real bot process against a mock Fluxer server",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["public"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "ASYNC"]
+ignore = [
+    "E501",  # long lines are fine when they read better
+    "B008",  # FastAPI's Depends() in argument defaults is the framework's idiom
+    "S101",  # assert is fine in tests
+    "UP007", # keep Optional/Union spelling flexible on 3.10
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S108", "S311", "S608", "B011"]

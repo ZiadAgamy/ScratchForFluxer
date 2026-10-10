@@ -1,0 +1,368 @@
+/* My bots + Add a bot */
+
+.page {
+  padding-block: clamp(1.5rem, 4vw, 3rem) clamp(2rem, 6vw, 4rem);
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.page-head h1 {
+  font-size: var(--fs-3xl);
+}
+
+.page-head .lead {
+  max-width: 40rem;
+  margin-top: 0.4rem;
+  color: var(--text-2);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--text);
+}
+
+/* ---------- list ---------- */
+.bot-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bot-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.bot-row + .bot-row {
+  border-top: 1px solid var(--line);
+}
+
+.bot-avatar {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  object-fit: cover;
+}
+
+.bot-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.bot-name {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bot-name:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.bot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 1rem;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.bot-token {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.bot-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bot-menu .menu-panel {
+  min-width: 12.5rem;
+}
+
+.menu-item-danger,
+.menu-item-danger:hover {
+  color: var(--danger);
+}
+
+.list-count {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 40rem) {
+  .bot-row {
+    flex-wrap: wrap;
+  }
+
+  .bot-main {
+    flex-basis: calc(100% - 4.5rem);
+  }
+
+  .bot-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ---------- empty state ---------- */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  padding: clamp(2rem, 6vw, 4rem) 1.5rem;
+  text-align: center;
+}
+
+.empty h2 {
+  font-size: var(--fs-xl);
+}
+
+.empty p {
+  max-width: 32rem;
+  color: var(--text-2);
+}
+
+.empty-block {
+  margin-bottom: 0.75rem;
+}
+
+.empty-block .blk {
+  --blk: var(--bg-hover);
+  --blk-hi: hsl(var(--hue) 9% 26%);
+  --blk-lip: hsl(var(--hue) 9% 10%);
+  width: 4.5rem;
+  height: 4.5rem;
+  justify-content: center;
+  border-radius: 1rem;
+  color: var(--text-2);
+  font-size: 1.6rem;
+}
+
+.empty-block .blk::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 1.1rem;
+  bottom: -0.78rem;
+  width: 2.3rem;
+  height: 0.78rem;
+  background: var(--blk-lip);
+  clip-path: polygon(0 0, 100% 0, 82% 100%, 18% 100%);
+}
+
+/* ---------- your data ---------- */
+.your-data {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.your-data h2 {
+  margin-bottom: 0.3rem;
+  font-size: var(--fs-lg);
+}
+
+.your-data p {
+  max-width: 42rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+/* ---------- dialogs ---------- */
+.dialog {
+  width: min(30rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  background: var(--bg-panel);
+  color: var(--text);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.6);
+}
+
+.dialog::backdrop {
+  background: rgb(8 7 10 / 0.72);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-body {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.dialog h2 {
+  font-size: var(--fs-xl);
+}
+
+.dialog-text {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.dialog-text strong {
+  color: var(--text);
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+/* ---------- add a bot ---------- */
+.onboard {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  align-items: start;
+}
+
+@media (max-width: 56rem) {
+  .onboard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.steps {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-bottom: 1.75rem;
+}
+
+.steps li:last-child {
+  padding-bottom: 0;
+}
+
+.steps li:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 2.6rem;
+  bottom: 0.35rem;
+  inset-inline-start: 1.0625rem;
+  width: 2px;
+  background: var(--line-strong);
+}
+
+.step-mark {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.6rem;
+  background: var(--accent-solid);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 0 var(--accent-lo);
+}
+
+.steps h2 {
+  margin-bottom: 0.25rem;
+  font-size: var(--fs-lg);
+}
+
+.steps p {
+  margin-bottom: 0.75rem;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.onboard-panel {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.onboard-panel > .facts {
+  margin-top: 0.25rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-icon {
+  flex: none;
+  min-width: 2.75rem;
+  padding-inline: 0;
+}
+
+.bot-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.bot-preview .bot-avatar {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.bot-preview-name {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+#state-paste,
+#state-confirm {
+  display: grid;
+  gap: 1.25rem;
+}
+
+#state-confirm .bot-preview {
+  margin-bottom: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}

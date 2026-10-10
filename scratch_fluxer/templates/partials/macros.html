@@ -1,0 +1,40 @@
+{#- Phosphor Fill icon. Names are checked against the vendored icon font in tests/test_icons.py. -#}
+{% macro icon(name, class="") -%}
+<i class="ph-fill ph-{{ name }}{% if class %} {{ class }}{% endif %}" aria-hidden="true"></i>
+{%- endmacro %}
+
+{#- A static example block built from a content.py spec ({"hat"?, "round"?, "parts": [text | ("field", t) | ("menu", t)]}). -#}
+{% macro example_block(spec, category) -%}
+<div class="blk blk--{{ category }}{% if spec.hat %} blk--hat{% endif %}{% if spec.round %} blk--round{% endif %}">
+  {%- for part in spec.parts -%}
+    {%- if part is string %}<span>{{ part }}</span>
+    {%- elif part[0] == "field" %}<span class="blk-field">{{ part[1] }}</span>
+    {%- else %}<span class="blk-menu">{{ part[1] }}{{ icon("caret-down") }}</span>
+    {%- endif -%}
+  {%- endfor -%}
+</div>
+{%- endmacro %}
+
+{#- Link previews (Open Graph / Twitter) for public pages. `image` and `url` are absolute, or empty when the site's address is unknown. -#}
+{% macro social(site, title, description, image, url) -%}
+<meta property="og:site_name" content="{{ site }}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{{ title }}">
+<meta property="og:description" content="{{ description }}">
+{%- if url %}
+<meta property="og:url" content="{{ url }}">
+<link rel="canonical" href="{{ url }}">
+{%- endif %}
+{%- if image %}
+<meta property="og:image" content="{{ image }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{ site }}: colourful blocks snapping together next to the Python they write.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{{ image }}">
+{%- else %}
+<meta name="twitter:card" content="summary">
+{%- endif %}
+<meta name="twitter:title" content="{{ title }}">
+<meta name="twitter:description" content="{{ description }}">
+{%- endmacro %}

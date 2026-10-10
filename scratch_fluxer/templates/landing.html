@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, example_block, social %}
+{% block title %}{{ app_name }}: learn Fluxer bots with blocks{% endblock %}
+{% block meta %}{{ social(app_name, app_name ~ ": learn Fluxer bots with blocks", "Snap blocks together like Scratch, read the real Python they write, then run your Fluxer bot.", og_image, canonical) }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ static('css/landing.css') }}">{% endblock %}
+{% set data_family = categories | selectattr("id", "equalto", "data") | first %}
+
+{% block content %}
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <h1>Build a Fluxer bot by snapping blocks together.</h1>
+      <p class="hero-lead">Drag blocks like you would in Scratch, read the real Python they write, then run your bot. Made for people learning the Fluxer bot API with fluxer.py.</p>
+      <div class="hero-actions">
+        {% if user %}
+          <a class="btn btn-primary btn-lg" href="/bots">{{ icon("robot") }}<span>Open my bots</span></a>
+        {% else %}
+          <a class="btn btn-primary btn-lg" href="/auth/login">{{ icon("sign-in") }}<span>Log in with Fluxer</span></a>
+        {% endif %}
+        <a class="btn btn-lg" href="#how"><span>See how it works</span></a>
+      </div>
+      <p class="hero-note">{{ icon("user-circle") }}<span>Use the Fluxer account that owns your bot. There is no separate password.</span></p>
+    </div>
+    <div class="hero-demo">
+      {% include "partials/demo.html" %}
+    </div>
+  </div>
+</section>
+
+<section class="band" id="how" aria-labelledby="how-title">
+  <div class="container">
+    <div class="band-head">
+      <h2 id="how-title">Four steps from nothing to a running bot</h2>
+      <p>Nothing to install. You build in the browser and this website runs the bot for you.</p>
+    </div>
+    <ol class="rail">
+      {% for icon_name, title, text in how_it_works %}
+      <li class="rail-step">
+        <span class="rail-mark" aria-hidden="true">{{ icon(icon_name) }}</span>
+        <p class="rail-count">Step {{ loop.index }}</p>
+        <h3>{{ title }}</h3>
+        <p>{{ text }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="band band-raised" id="blocks" aria-labelledby="blocks-title">
+  <div class="container">
+    <div class="band-head">
+      <h2 id="blocks-title">Nine kinds of blocks, from events to variables</h2>
+      <p>Every family has its own colour, the same as in the editor. Pick one to see a few of its blocks.</p>
+    </div>
+    <div class="explorer" data-explorer>
+      <div class="tabs" data-role="tabs">
+        {% for c in categories %}
+        <button class="tab cat--{{ c.id }}" type="button" data-target="cat-{{ c.id }}"><span class="tab-chip" aria-hidden="true"></span><span>{{ c.name }}</span></button>
+        {% endfor %}
+      </div>
+      <div class="stage">
+        {% for c in categories %}
+        <div class="cat-panel cat--{{ c.id }}" id="cat-{{ c.id }}">
+          <h3 class="cat-title">{{ icon(c.icon) }}<span>{{ c.name }}</span></h3>
+          <p class="cat-blurb">{{ c.blurb }}</p>
+          <div class="cat-blocks">
+            {% for b in c.blocks %}{{ example_block(b, c.id) }}{% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="run" aria-label="Files and the console">
+  <div class="container features">
+    <div class="feature">
+      <div class="feature-copy">
+        <h2>Bring your own files</h2>
+        <p>Upload JSON files, images and other assets, then pick them from a block's dropdown. Load a list of quotes from JSON, or reply with a picture.</p>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <div class="mock-head">{{ icon("folder-open") }}<span>Assets</span></div>
+        <ul class="asset-list">
+          <li>{{ icon("file-code") }}<span class="asset-name">quotes.json</span><span class="asset-size">1.2 KB</span></li>
+          <li>{{ icon("image") }}<span class="asset-name">cat.png</span><span class="asset-size">48 KB</span></li>
+        </ul>
+        <div class="drop">{{ icon("upload-simple") }}<span>Drop files here, or choose files</span></div>
+        <div class="mock-blocks">
+          {% for b in data_family.blocks if not b.round %}{{ example_block(b, "data") }}{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="feature feature-flip">
+      <div class="feature-copy">
+        <h2>See what your bot is doing</h2>
+        <p>Run, restart and stop it from the editor. The console shows what your bot writes, plus warnings and errors, so you can find out why something didn't work.</p>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <div class="mock-head">
+          {{ icon("terminal-window") }}<span>Console</span>
+          <span class="mock-filters"><span class="is-on">All</span><span>Warnings</span><span>Errors</span></span>
+        </div>
+        <div class="console">
+          <div class="log log-system"><time>10:02:11</time><span>Starting your bot…</span></div>
+          <div class="log log-info"><time>10:02:12</time><span>Bot is online!</span></div>
+          <div class="log log-warn"><time>10:03:40</time><span>WARNING  Global rate limit hit, pausing for 1.50s</span></div>
+          <div class="log log-error"><time>10:04:02</time><span>ERROR  Error in command 'ping'</span></div>
+          <div class="log log-error"><time></time><span>ZeroDivisionError: division by zero</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-raised" id="safety" aria-labelledby="safety-title">
+  <div class="container">
+    <div class="band-head">
+      <h2 id="safety-title">Safe to learn on</h2>
+      <p>You are handing this site a bot token, so here is what happens to it, and to the rest of your data.</p>
+    </div>
+    <ul class="safety">
+      {% for icon_name, title, text in safety %}
+      <li>
+        {{ icon(icon_name) }}
+        <div><h3>{{ title }}</h3><p>{{ text }}</p></div>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="safety-more"><a href="/privacy">Read the privacy details</a></p>
+  </div>
+</section>
+
+<section class="cta" aria-labelledby="cta-title">
+  <div class="container cta-inner">
+    <h2 id="cta-title">Ready to build your first bot?</h2>
+    <p>Log in, add your bot, and drag the first block. It takes a few minutes.</p>
+    {% if user %}
+      <a class="btn btn-primary btn-lg" href="/bots">{{ icon("robot") }}<span>Open my bots</span></a>
+    {% else %}
+      <a class="btn btn-primary btn-lg" href="/auth/login">{{ icon("sign-in") }}<span>Log in with Fluxer</span></a>
+    {% endif %}
+    {% if community_url %}
+    <p class="cta-community">{{ icon("users-three") }}<span>Stuck, or missing a block? Ask in the <a href="{{ community_url }}" target="_blank" rel="noopener noreferrer">community server</a> on Fluxer.</span></p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{{ static('js/landing.js') }}" defer></script>{% endblock %}

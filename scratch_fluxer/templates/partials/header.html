@@ -1,0 +1,41 @@
+{% from "partials/macros.html" import icon %}
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href="/" aria-label="{{ app_name }}, home">
+      <img src="{{ static('img/logo.png') }}" alt="" width="30" height="32" decoding="async">
+      <span class="brand-name">{{ app_name }}</span>
+    </a>
+
+    {% if landing_nav %}
+    <nav class="primary-nav" aria-label="On this page">
+      <a href="#how">How it works</a>
+      <a href="#blocks">Blocks</a>
+      <a href="#safety">Safety</a>
+    </nav>
+    {% endif %}
+
+    <div class="header-actions">
+      {% if user %}
+        <a class="btn btn-secondary btn-sm" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+        <details class="menu">
+          <summary aria-label="Account menu">
+            <img class="avatar" src="{{ user.avatar_url }}" alt="" width="32" height="32" referrerpolicy="no-referrer" decoding="async" data-fallback>
+            <span class="menu-name">{{ user.display_name }}</span>
+            {{ icon("caret-down") }}
+          </summary>
+          <div class="menu-panel">
+            <div class="menu-head">Logged in as <strong>{{ user.display_name }}</strong>@{{ user.username }}</div>
+            <a class="menu-item" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+            <a class="menu-item" href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ icon("arrow-square-out") }}<span>Open Fluxer</span></a>
+            <form method="post" action="/auth/logout">
+              <input type="hidden" name="csrf_token" value="{{ user.csrf }}">
+              <button class="menu-item" type="submit">{{ icon("sign-out") }}<span>Log out</span></button>
+            </form>
+          </div>
+        </details>
+      {% elif page != "login" %}
+        <a class="btn btn-primary btn-sm" href="/auth/login">{{ icon("sign-in") }}<span>Log in with Fluxer</span></a>
+      {% endif %}
+    </div>
+  </div>
+</header>
