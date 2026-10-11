@@ -390,6 +390,17 @@ _SPECS: list[dict[str, Any]] = [
         tooltip="Sends a private message to the person who just joined or left.",
         needs=("member",),
     ),
+    block(
+        "sff_give_role",
+        "messages",
+        "statement",
+        ["give the member the role", text("ROLE", "")],
+        tooltip=(
+            "Gives the person who just joined a role. Paste the role's ID. Your bot needs the Manage Roles "
+            "permission, and its own role must be above the role it gives."
+        ),
+        needs=("member",),
+    ),
     # ---- Message info
     block(
         "sff_msg_text",

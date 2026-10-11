@@ -79,6 +79,8 @@ GENERATED_NAMES = frozenset(
         "channel",
         "embed",
         "user",
+        "guild",
+        "joined",
         "data",
         "x",
     }
@@ -954,6 +956,13 @@ statement_template("sff_react", "await {msg}.add_reaction({EMOJI})")
 statement_template("sff_delete_message", "await {msg}.delete()")
 statement_template("sff_dm_author", "await {msg}.author.send({TEXT})")
 statement_template("sff_dm_member", "user = await bot.fetch_user(str(member.user.id))\nawait user.send({TEXT})")
+statement_template(
+    "sff_give_role",
+    # The member of a join event carries no connection to Fluxer, so it is fetched again through the community.
+    "guild = await bot.fetch_guild(str(member.guild_id))\n"
+    "joined = await guild.fetch_member(member.user.id)\n"
+    "await joined.add_role(int({ROLE}))",
+)
 statement_template("sff_wait", "await asyncio.sleep({SECONDS})", "asyncio")
 statement_template("sff_stop_script", "return")
 statement_template("sff_list_add", "{LIST}.append({ITEM})")
