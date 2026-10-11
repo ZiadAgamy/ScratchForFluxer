@@ -13,7 +13,7 @@ Python they write (it runs on [fluxer.py](https://github.com/akarealemil/fluxer.
 
 - **A landing page**, **Log in with Fluxer** (OAuth2 with PKCE), a page to **pick or add a bot**, a **paste your bot token**
   step that checks the token with Fluxer, and the **block editor**.
-- **78 blocks in 9 families**: Events, Bot (status, custom status, console), Messages, Message info, Control, Operators,
+- **79 blocks in 9 families**: Events, Bot (status, custom status, console), Messages, Message info, Control, Operators,
   Variables, Lists, and JSON and assets. Every block writes real fluxer.py code, which you can read, copy or download.
 - **Your own files**: upload JSON, images and text files, then pick them from a block's dropdown. The editor shows which
   files your blocks use.
