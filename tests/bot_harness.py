@@ -57,6 +57,10 @@ class FakeHTTP:
             return user_data(int(args[0]), "member")
         if name == "create_dm":
             return {"id": "5555", "type": 1}
+        if name == "get_guild":
+            return {"id": str(args[0]), "name": "Test community"}
+        if name == "get_guild_member":
+            return {"user": user_data(int(args[1]), "member"), "roles": []}
         return None
 
     def named(self, name: str) -> list[tuple[tuple[Any, ...], dict[str, Any]]]:

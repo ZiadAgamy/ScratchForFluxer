@@ -127,6 +127,24 @@ async def test_members_joining_and_leaving(tmp_path):
     assert running.http.named("create_dm") == [((321,), {})]
 
 
+async def test_giving_a_new_member_a_role(tmp_path):
+    running = build(tmp_path, on_join(block("sff_give_role", inputs={"ROLE": "555000111222333444"})))
+    await running.member_joins("newbie", user_id=321, guild_id=777)
+    assert running.http.named("get_guild") == [(("777",), {})]
+    assert running.http.named("get_guild_member") == [((777, 321), {})]
+    assert running.http.named("add_guild_member_role") == [((777, 321, 555000111222333444), {"reason": None})]
+
+
+async def test_a_role_id_that_is_not_a_number_is_reported_and_the_bot_carries_on(tmp_path):
+    running = build(
+        tmp_path,
+        on_join(block("sff_give_role", inputs={"ROLE": "Members"}), block("sff_dm_member", inputs={"TEXT": "Hi!"})),
+    )
+    await running.member_joins("newbie", user_id=321)
+    assert running.http.named("add_guild_member_role") == []
+    assert running.texts == []
+
+
 async def test_community_ids(tmp_path):
     running = build(
         tmp_path, on_join(block("sff_send_channel", inputs={"CHANNEL": "300", "TEXT": block("sff_community_id")}))

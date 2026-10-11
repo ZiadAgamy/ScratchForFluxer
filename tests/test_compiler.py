@@ -360,6 +360,16 @@ STATEMENT_CASES = [
         id="private message to a member",
     ),
     pytest.param(
+        "join",
+        [block("sff_give_role", inputs={"ROLE": "123456789012345678"})],
+        [
+            "guild = await bot.fetch_guild(str(member.guild_id))",
+            "joined = await guild.fetch_member(member.user.id)",
+            'await joined.add_role(int("123456789012345678"))',
+        ],
+        id="give a member a role",
+    ),
+    pytest.param(
         "ready",
         [block("sff_set_status", fields={"STATUS": "idle"})],
         ['await update_presence(status="idle")'],
