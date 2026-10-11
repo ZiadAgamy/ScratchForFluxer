@@ -8,6 +8,9 @@
   var B = window.Blockly;
   var el = E.el;
 
+  /* The most a text block holds. The server's limit is the same number (tests/test_text_limits.py keeps them equal). */
+  var TEXT_LIMIT = 2000;
+
   var payload = null;
   var workspace = null;
   var loading = false;
@@ -273,9 +276,23 @@
 
   function hookDialogs() {
     B.dialog.setPrompt(function (message, defaultValue, callback) {
-      E.dialogs
-        .prompt({ title: "Rename", label: message, value: defaultValue, validate: function (v) { return v ? "" : "Type a name first."; } })
-        .then(callback);
+      /* On a touch screen, Blockly edits the text of a block in a dialog that asks "Change value:". That one is for
+         text people write (a rule, a welcome), so it takes as much as a text block can hold and keeps it as typed.
+         A box with a shorter limit of its own (a command name, say) still cuts the text to that limit. */
+      var editingText = /change value/i.test(String(message));
+      var options = editingText
+        ? {
+            title: "Edit text",
+            label: "Text",
+            value: defaultValue,
+            maxLength: TEXT_LIMIT,
+            trim: false,
+            hint: "Up to " + TEXT_LIMIT + " characters.",
+            confirmLabel: "Done",
+            validate: function () { return ""; },
+          }
+        : { title: "Rename", label: message, value: defaultValue, validate: function (v) { return v ? "" : "Type a name first."; } };
+      E.dialogs.prompt(options).then(callback);
     });
     B.dialog.setConfirm(function (message, callback) {
       E.dialogs.confirm({ title: "Are you sure?", message: message, confirmLabel: "Yes", danger: true }).then(callback);

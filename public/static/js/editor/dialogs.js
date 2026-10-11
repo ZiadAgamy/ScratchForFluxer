@@ -69,7 +69,8 @@
           on: {
             submit: function (event) {
               event.preventDefault();
-              var value = input.value.trim();
+              /* Names are tidied; text for a block is kept exactly as typed (a space at the end of "Hello " matters). */
+              var value = opts.trim === false ? input.value : input.value.trim();
               var problem = opts.validate ? opts.validate(value) : value ? "" : "Type something first.";
               if (problem) {
                 error.textContent = problem;
