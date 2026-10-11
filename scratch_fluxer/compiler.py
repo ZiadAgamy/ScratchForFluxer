@@ -58,6 +58,13 @@ GENERATED_NAMES = frozenset(
         "logging",
         "math",
         "random",
+        "datetime",
+        "as_id",
+        "moderate",
+        "has_role",
+        "reaction_matches",
+        "first_mention",
+        "event",
         "Path",
         "ASSETS",
         "log",
@@ -95,6 +102,8 @@ HAT_LABELS = {
     "command": "when the command is used",
     "member_join": "when someone joins a community",
     "member_leave": "when someone leaves a community",
+    "reaction_add": "when someone adds a reaction",
+    "reaction_remove": "when someone removes a reaction",
 }
 
 # --------------------------------------------------------------------------------------------- diagnostics
@@ -237,6 +246,92 @@ HELPERS: dict[str, dict[str, Any]] = {
     return random.randint(low, high)
 ''',
     },
+    "as_id": {
+        "imports": (),
+        "needs": (),
+        "source": '''def as_id(value):
+    """A user or role ID from text. A mention like <@123> works too. Anything else gives 0."""
+    digits = "".join(ch for ch in str(value) if ch.isdigit())
+    return int(digits) if digits else 0
+''',
+    },
+    "first_mention": {
+        "imports": (),
+        "needs": (),
+        "source": '''def first_mention(message):
+    """The ID of the first person mentioned in the message, or "" if nobody was."""
+    return str(message.mentions[0].id) if message.mentions else ""
+''',
+    },
+    "reaction_matches": {
+        "imports": (),
+        "needs": (),
+        "source": '''def reaction_matches(event, message_id, emoji):
+    """True if the reaction is on the chosen message and is the chosen emoji. A blank choice accepts anything."""
+    if message_id.strip() and str(event.message_id) != message_id.strip():
+        return False
+    wanted = emoji.strip().replace("\\ufe0f", "")
+    if not wanted:
+        return True
+    name = str(event.emoji.name or "").strip(":")
+    options = [str(event.emoji.unicode or "").replace("\\ufe0f", ""), name, ":" + name + ":", str(event.emoji.id or "")]
+    return wanted in options
+''',
+    },
+    "has_role": {
+        "imports": (),
+        "needs": ("as_id",),
+        "source": '''async def has_role(guild_id, user, role):
+    """True if the person has the role. False when anything is missing or goes wrong."""
+    if not guild_id or not as_id(user) or not as_id(role):
+        return False
+    try:
+        guild = await bot.fetch_guild(str(guild_id))
+        member = await guild.fetch_member(as_id(user))
+        return as_id(role) in member.roles
+    except Exception:
+        return False
+''',
+    },
+    "moderate": {
+        "imports": ("datetime",),
+        "needs": ("as_id",),
+        "source": '''async def moderate(guild_id, action, user, extra=0, reason=""):
+    """Run one moderation block. A problem (no community, a bad ID, a missing permission) is printed, never a crash."""
+    target = as_id(user)
+    if not guild_id or not target:
+        print("Moderation skipped: it needs a community and a valid user ID.")
+        return
+    if target == bot.user.id:
+        print("Moderation skipped: the bot will not do this to itself.")
+        return
+    why = str(reason).strip() or None
+    try:
+        guild = await bot.fetch_guild(str(guild_id))
+        if action == "kick":
+            await guild.kick(target, reason=why)
+        elif action == "ban":
+            await guild.ban(target, reason=why)
+        elif action == "unban":
+            await guild.unban(target, reason=why)
+        else:
+            member = await guild.fetch_member(target)
+            if action == "timeout":
+                minutes = int(extra)
+                minutes = 1 if minutes < 1 else minutes
+                minutes = 40320 if minutes > 40320 else minutes
+                until = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=minutes)
+                await member.timeout(until=until.isoformat(), reason=why)
+            elif action == "untimeout":
+                await member.timeout(until=None, reason=why)
+            elif action == "add_role":
+                await member.add_role(as_id(extra), reason=why)
+            elif action == "remove_role":
+                await member.remove_role(as_id(extra), reason=why)
+    except Exception:
+        print("Moderation failed (" + action + "). Check the bot's permissions and that its role is above the person's.")
+''',
+    },
     "update_presence": {
         "imports": (),
         "needs": (),
@@ -269,10 +364,15 @@ HELPER_ORDER = [
     "delete_item",
     "random_item",
     "random_number",
+    "as_id",
+    "first_mention",
+    "reaction_matches",
+    "has_role",
+    "moderate",
     "update_presence",
 ]
 
-STDLIB_IMPORT_ORDER = ["asyncio", "json", "logging", "math", "os", "random"]
+STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random"]
 
 
 # --------------------------------------------------------------------------------------------- small utilities
@@ -581,11 +681,12 @@ _PARTS: dict[str, dict[str, dict[str, Any]]] = {}
 class Context:
     """What the script a block sits in can offer: a message (``ctx`` or ``message``), a member, command text."""
 
-    kind: str  # ready | message | command | member_join | member_leave
+    kind: str  # ready | message | command | member_join | member_leave | reaction_add | reaction_remove
     hat: Node
     message_var: str | None = None
     member: bool = False
     command_text: bool = False
+    moderation: Node | None = None  # the first block in this script that acts on other people
     assigned: set[str] = field(default_factory=set)  # variables this script gives a value (they need ``global``)
     loops: int = 0  # how many loops the block being written sits inside
 
@@ -598,7 +699,20 @@ class Context:
             out.add("command")
         if self.member:
             out.add("member")
+        if self.kind.startswith("reaction"):
+            out.add("reaction")
         return out
+
+    @property
+    def guild_code(self) -> str:
+        """Python for the ID of the community this script is running in."""
+        if self.message_var:
+            return f"{self.message_var}.guild_id"
+        if self.member:
+            return "member.guild_id"
+        if self.kind.startswith("reaction"):
+            return "event.guild_id"
+        return "None"
 
 
 class Generator:
@@ -885,6 +999,8 @@ class Generator:
             name, mode = match.group(1), match.group(2)
             if name == "msg":
                 return ctx.message_var or "message"
+            if name == "guild":
+                return ctx.guild_code
             part = parts[name]
             if "input" in part:
                 expr = self.input(node, name, ctx)
@@ -910,7 +1026,12 @@ class Generator:
                 self.imports.add(name)
 
 
-_NEEDS_LABELS = {"message": "a message", "command": "a command", "member": "a member who joined or left"}
+_NEEDS_LABELS = {
+    "message": "a message",
+    "command": "a command",
+    "member": "a member who joined or left",
+    "reaction": "a reaction",
+}
 _EMPTY = {
     "text": text_literal(""),
     "number": number_literal(0),
@@ -963,6 +1084,45 @@ statement_template(
     "joined = await guild.fetch_member(member.user.id)\n"
     "await joined.add_role(int({ROLE}))",
 )
+ACTS_ON_PEOPLE = frozenset(
+    {
+        "sff_timeout_member",
+        "sff_untimeout_member",
+        "sff_kick_member",
+        "sff_ban_member",
+        "sff_unban_member",
+        "sff_give_role_to",
+        "sff_take_role_from",
+    }
+)
+
+
+def moderation_template(block_type: str, template: str) -> None:
+    """A block that acts on other people. Remembers the first one in the script, so the compiler can warn if
+    nobody is checked for permission."""
+
+    def write(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
+        gen.need("moderate", "as_id")
+        if ctx.moderation is None:
+            ctx.moderation = node
+        rows.add(indent, gen.render(node, ctx, template))
+
+    STATEMENTS[block_type] = write
+
+
+moderation_template("sff_timeout_member", 'await moderate({guild}, "timeout", {USER}, {MINUTES}, {REASON})')
+moderation_template("sff_untimeout_member", 'await moderate({guild}, "untimeout", {USER}, 0, {REASON})')
+moderation_template("sff_kick_member", 'await moderate({guild}, "kick", {USER}, 0, {REASON})')
+moderation_template("sff_ban_member", 'await moderate({guild}, "ban", {USER}, 0, {REASON})')
+moderation_template("sff_unban_member", 'await moderate({guild}, "unban", {USER}, 0, {REASON})')
+moderation_template("sff_give_role_to", 'await moderate({guild}, "add_role", {USER}, {ROLE})')
+moderation_template("sff_take_role_from", 'await moderate({guild}, "remove_role", {USER}, {ROLE})')
+statement_template(
+    "sff_reaction_give_role", 'await moderate({guild}, "add_role", event.user_id, {ROLE})', "moderate", "as_id"
+)
+statement_template(
+    "sff_reaction_take_role", 'await moderate({guild}, "remove_role", event.user_id, {ROLE})', "moderate", "as_id"
+)
 statement_template("sff_wait", "await asyncio.sleep({SECONDS})", "asyncio")
 statement_template("sff_stop_script", "return")
 statement_template("sff_list_add", "{LIST}.append({ITEM})")
@@ -981,6 +1141,9 @@ value_template("sff_msg_author_id", "str({msg}.author.id)")
 value_template("sff_msg_channel_id", "str({msg}.channel_id)")
 value_template("sff_msg_id", "str({msg}.id)")
 value_template("sff_msg_author_is_bot", "{msg}.author.bot")
+value_template("sff_reactor_id", "str(event.user_id)")
+value_template("sff_first_mention_id", "first_mention({msg})", "first_mention")
+value_template("sff_author_has_role", "(await has_role({guild}, {msg}.author.id, {ROLE}))", "has_role", "as_id")
 value_template("sff_member_name", "member.display_name")
 value_template("sff_member_mention", "member.mention")
 value_template("sff_member_id", "str(member.user.id)")
@@ -1361,8 +1524,22 @@ _EVENTS = {
     "sff_event_message": ("message", "on_message", "message", "message"),
     "sff_event_member_join": ("member_join", "on_member_join", "data", "member_join"),
     "sff_event_member_leave": ("member_remove", "on_member_remove", "data", "member_leave"),
+    "sff_event_reaction_add": ("raw_reaction_add", "on_raw_reaction_add", "event", "reaction_add"),
+    "sff_event_reaction_remove": ("raw_reaction_remove", "on_raw_reaction_remove", "event", "reaction_remove"),
 }
 HAT_TYPES = frozenset(_EVENTS) | {"sff_event_command"}
+
+
+def _contains(first: Node | None, block_type: str, depth: int = 0) -> bool:
+    """True if a block of this type sits anywhere in the stack, inside other blocks and sockets too."""
+    node = first
+    while node is not None and depth < MAX_DEPTH:
+        if node.enabled and node.type == block_type:
+            return True
+        if any(_contains(inner, block_type, depth + 1) for inner in node.inputs.values()):
+            return True
+        node = node.next
+    return False
 
 
 def _script(gen: Generator, hat: Node) -> Rows | None:
@@ -1402,9 +1579,33 @@ def _script(gen: Generator, hat: Node) -> Rows | None:
             ]
         elif ctx.member:
             preamble.append((1, "member = fluxer.GuildMember.from_data(data)"))
+        elif kind.startswith("reaction"):
+            message_id = gen.field_text(hat, "MESSAGE").strip()
+            emoji = gen.field_text(hat, "EMOJI").strip()
+            if message_id and not message_id.isdigit():
+                gen.warn("The message ID is only digits, so no message will match. Copy it from Fluxer.", hat)
+            gen.need("reaction_matches")
+            preamble += [
+                (1, "# Ignore the bot's own reactions."),
+                (1, "if event.user_id == bot.user.id:"),
+                (2, "return"),
+                (1, f"if not reaction_matches(event, {python_string(message_id)}, {python_string(emoji)}):"),
+                (2, "return"),
+            ]
 
     body = Rows()
     gen.body(hat.next, ctx, body, 1, 0)
+
+    if (
+        ctx.moderation is not None
+        and ctx.kind in ("message", "command")
+        and not _contains(hat.next, "sff_author_has_role")
+    ):
+        gen.warn(
+            "Anyone who can type this could use it on other people. Put it inside an “if” with "
+            "“author has the role …” so only your staff can.",
+            ctx.moderation,
+        )
 
     if ctx.command_text:  # the text after the command arrives as a keyword argument
         param = 'ctx, *, text: str = ""'

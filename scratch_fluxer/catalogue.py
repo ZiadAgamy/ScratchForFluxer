@@ -271,6 +271,36 @@ _SPECS: list[dict[str, Any]] = [
         ["when someone leaves a community"],
         tooltip="Runs when a person leaves a community your bot is in.",
     ),
+    block(
+        "sff_event_reaction_add",
+        "events",
+        "hat",
+        [
+            "when someone adds the reaction",
+            field("EMOJI", "✅", max_length=40),
+            "to message",
+            field("MESSAGE", "", max_length=30),
+        ],
+        tooltip=(
+            "Runs when a person reacts. Paste the message's ID (leave it empty for any message) and type the emoji "
+            "(leave it empty for any emoji). Reactions from your own bot are ignored."
+        ),
+    ),
+    block(
+        "sff_event_reaction_remove",
+        "events",
+        "hat",
+        [
+            "when someone removes the reaction",
+            field("EMOJI", "✅", max_length=40),
+            "from message",
+            field("MESSAGE", "", max_length=30),
+        ],
+        tooltip=(
+            "Runs when a person takes their reaction back. Use the same message ID and emoji as the block that gave "
+            "the role, then take the role away here."
+        ),
+    ),
     # ---- Bot
     block(
         "sff_set_status",
@@ -401,7 +431,127 @@ _SPECS: list[dict[str, Any]] = [
         ),
         needs=("member",),
     ),
+    block(
+        "sff_give_role_to",
+        "messages",
+        "statement",
+        ["give the role", text("ROLE", ""), "to the person", text("USER", "")],
+        tooltip=(
+            "Gives a role to a person. Paste the role's ID and the person's ID (or a mention). Your bot needs the Manage Roles permission, and its own role must be above the role it gives."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_take_role_from",
+        "messages",
+        "statement",
+        ["take the role", text("ROLE", ""), "from the person", text("USER", "")],
+        tooltip=(
+            "Removes a role from a person. Paste the role's ID and the person's ID (or a mention). Your bot needs the Manage Roles permission, and its own role must be above that role."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_reaction_give_role",
+        "messages",
+        "statement",
+        ["give the person who reacted the role", text("ROLE", "")],
+        tooltip=(
+            "Gives the role to whoever added the reaction. Paste the role's ID. Your bot needs the Manage Roles permission, and its own role must be above the role it gives."
+        ),
+        needs=("reaction",),
+    ),
+    block(
+        "sff_reaction_take_role",
+        "messages",
+        "statement",
+        ["take the role", text("ROLE", ""), "from the person who reacted"],
+        tooltip=(
+            "Removes the role from whoever took their reaction back. Paste the same role ID that the adding script gives."
+        ),
+        needs=("reaction",),
+    ),
+    block(
+        "sff_timeout_member",
+        "messages",
+        "statement",
+        [
+            "mute (time out) the person",
+            text("USER", ""),
+            "for",
+            number("MINUTES", 10),
+            "minutes, reason",
+            text("REASON", ""),
+        ],
+        tooltip=(
+            "Stops a person from talking for some minutes (1 to 40320, which is 28 days). Paste their ID or mention them. Needs the Moderate Members permission and a role above theirs."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_untimeout_member",
+        "messages",
+        "statement",
+        ["unmute the person", text("USER", ""), "reason", text("REASON", "")],
+        tooltip=("Ends a mute early. Needs the Moderate Members permission."),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_kick_member",
+        "messages",
+        "statement",
+        ["kick the person", text("USER", ""), "reason", text("REASON", "")],
+        tooltip=(
+            "Removes a person from the community. They can join again with an invite. Needs the Kick Members permission and a role above theirs."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_ban_member",
+        "messages",
+        "statement",
+        ["ban the person", text("USER", ""), "reason", text("REASON", "")],
+        tooltip=(
+            "Removes a person and stops them from joining again until you unban them. Needs the Ban Members permission and a role above theirs."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_unban_member",
+        "messages",
+        "statement",
+        ["unban the person", text("USER", ""), "reason", text("REASON", "")],
+        tooltip=("Lets a banned person join again. Paste their ID. Needs the Ban Members permission."),
+        needs=("message", "member", "reaction"),
+    ),
     # ---- Message info
+    block(
+        "sff_reactor_id",
+        "info",
+        "value",
+        ["ID of the person who reacted"],
+        tooltip="The ID of the person who added or removed the reaction.",
+        needs=("reaction",),
+        returns="text",
+    ),
+    block(
+        "sff_first_mention_id",
+        "info",
+        "value",
+        ["ID of the first person mentioned"],
+        tooltip="The ID of the first person mentioned in the message (like !kick @someone), or empty if nobody was.",
+        needs=("message",),
+        returns="text",
+    ),
+    block(
+        "sff_author_has_role",
+        "info",
+        "boolean",
+        ["author has the role", text("ROLE", "")],
+        tooltip="True if the person who wrote the message has this role. Paste the role's ID. Use it so only staff can run moderation commands.",
+        needs=("message",),
+        returns="boolean",
+    ),
     block(
         "sff_msg_text",
         "info",

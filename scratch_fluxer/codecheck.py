@@ -18,7 +18,7 @@ import builtins
 
 from .assets import is_safe_name
 
-ALLOWED_IMPORTS = frozenset({"asyncio", "json", "logging", "math", "os", "random", "fluxer"})
+ALLOWED_IMPORTS = frozenset({"asyncio", "datetime", "json", "logging", "math", "os", "random", "fluxer"})
 
 #: Built-in names the generated code may use. Everything else in ``dir(builtins)`` is refused.
 ALLOWED_BUILTINS = frozenset(
@@ -36,6 +36,7 @@ ALLOWED_BUILTINS = frozenset(
         "sorted",
         "any",
         "isinstance",
+        "Exception",
         "TypeError",
         "ValueError",
         "KeyError",
@@ -47,6 +48,7 @@ ALLOWED_BUILTINS = frozenset(
 MODULE_ATTRS: dict[str, frozenset[str]] = {
     "os": frozenset({"environ"}),
     "asyncio": frozenset({"sleep"}),
+    "datetime": frozenset({"datetime", "timezone", "timedelta"}),
     "json": frozenset({"loads"}),
     "logging": frozenset({"basicConfig", "getLogger", "INFO"}),
     "math": frozenset({"floor", "ceil"}),
@@ -78,6 +80,22 @@ ALLOWED_ATTRS = frozenset(
         "fetch_guild",
         "fetch_member",
         "add_role",
+        "remove_role",
+        "kick",
+        "ban",
+        "unban",
+        "timeout",
+        "roles",
+        "mentions",
+        "emoji",
+        "unicode",
+        "name",
+        "message_id",
+        "user_id",
+        "now",
+        "utc",
+        "isoformat",
+        "isdigit",
         "event",
         "command",
         "on",
