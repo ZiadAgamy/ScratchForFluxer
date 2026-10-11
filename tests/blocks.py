@@ -108,6 +108,14 @@ def on_leave(*steps: dict[str, Any], **kw: Any):
     return hat("sff_event_member_leave", *steps, **kw)
 
 
+def on_reaction_added(emoji: str, message_id: str, *steps: dict[str, Any], **kw: Any):
+    return hat("sff_event_reaction_add", *steps, fields={"EMOJI": emoji, "MESSAGE": message_id}, **kw)
+
+
+def on_reaction_removed(emoji: str, message_id: str, *steps: dict[str, Any], **kw: Any):
+    return hat("sff_event_reaction_remove", *steps, fields={"EMOJI": emoji, "MESSAGE": message_id}, **kw)
+
+
 # --------------------------------------------------------------------------------------------- values
 
 

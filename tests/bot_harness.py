@@ -30,6 +30,7 @@ class FakeHTTP:
 
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
+        self.member_roles: dict[int, list[str]] = {}  # user id -> role ids that Fluxer says the person has
 
     def __getattr__(self, name: str):
         if name.startswith("__"):
@@ -41,8 +42,7 @@ class FakeHTTP:
 
         return call
 
-    @staticmethod
-    def _answer(name: str, args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
+    def _answer(self, name: str, args: tuple[Any, ...], kwargs: dict[str, Any]) -> Any:
         if name == "send_message":
             return {
                 "id": str(next(_ids)),
@@ -60,7 +60,7 @@ class FakeHTTP:
         if name == "get_guild":
             return {"id": str(args[0]), "name": "Test community"}
         if name == "get_guild_member":
-            return {"user": user_data(int(args[1]), "member"), "roles": []}
+            return {"user": user_data(int(args[1]), "member"), "roles": self.member_roles.get(int(args[1]), [])}
         return None
 
     def named(self, name: str) -> list[tuple[tuple[Any, ...], dict[str, Any]]]:
@@ -126,6 +126,27 @@ class Running:
 
     async def member_leaves(self, name: str = "oldtimer", user_id: int = 301, guild_id: int = 700) -> None:
         await self.bot._dispatch("GUILD_MEMBER_REMOVE", {"user": user_data(user_id, name), "guild_id": str(guild_id)})
+
+    async def reaction(
+        self,
+        emoji: str = "✅",
+        *,
+        added: bool = True,
+        user_id: int = 200,
+        message_id: int = 555,
+        guild_id: int | None = 700,
+        custom_id: int | None = None,
+    ) -> None:
+        emoji_data = {"id": str(custom_id), "name": emoji} if custom_id else {"id": None, "name": emoji}
+        data: dict[str, Any] = {
+            "message_id": str(message_id),
+            "channel_id": "300",
+            "user_id": str(user_id),
+            "emoji": emoji_data,
+        }
+        if guild_id:
+            data["guild_id"] = str(guild_id)
+        await self.bot._dispatch("MESSAGE_REACTION_ADD" if added else "MESSAGE_REACTION_REMOVE", data)
 
     # ---- what the bot did
     @property

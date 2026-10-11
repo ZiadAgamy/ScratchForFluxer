@@ -1285,3 +1285,54 @@ class TestWhatTheServerKeepsIsWhatBlocklyDraws:
         )
         assert drawn >= len(types)
         assert_quiet(page)
+
+
+# =============================================================================================== editing text on a touch screen
+class TestEditingText:
+    """On a phone Blockly asks "Change value:" in a dialog. It has to take a whole rule or welcome, as typed."""
+
+    def ask(self, page, message="Change value:", start="old "):
+        page.evaluate(
+            "([message, start]) => { window.__answer = 'waiting'; "
+            "window.Blockly.dialog.prompt(message, start, (value) => { window.__answer = value; }); }",
+            [message, start],
+        )
+        page.wait_for_selector("dialog.dialog[open] #dlg-input")
+
+    def answer(self, page):
+        page.wait_for_function("() => window.__answer !== 'waiting'")
+        return page.evaluate("() => window.__answer")
+
+    def test_it_takes_as_much_as_a_text_block_holds_and_keeps_it_as_typed(self, open_editor):
+        page = open_editor()
+        self.ask(page)
+        assert page.get_attribute("#dlg-input", "maxlength") == "2000"
+        assert page.input_value("#dlg-input") == "old "
+        assert "Edit text" in page.inner_text("dialog.dialog h2")
+        text = ("Be kind. " * 200) + "Welcome, "  # 1,809 characters, with a space at the end
+        page.fill("#dlg-input", text)
+        page.keyboard.press("Enter")
+        assert self.answer(page) == text
+
+    def test_it_can_be_left_empty(self, open_editor):
+        page = open_editor()
+        self.ask(page)
+        page.fill("#dlg-input", "")
+        page.keyboard.press("Enter")
+        assert self.answer(page) == ""
+
+    def test_cancelling_changes_nothing(self, open_editor):
+        page = open_editor()
+        self.ask(page)
+        page.fill("#dlg-input", "something else")
+        page.keyboard.press("Escape")
+        assert self.answer(page) is None
+
+    def test_other_questions_keep_their_short_limit_and_their_wording(self, open_editor):
+        page = open_editor()
+        self.ask(page, message="Rename variable to:")
+        assert page.get_attribute("#dlg-input", "maxlength") == "80"
+        assert "Rename" in page.inner_text("dialog.dialog h2")
+        page.fill("#dlg-input", "")
+        page.keyboard.press("Enter")
+        assert "name" in page.inner_text("dialog.dialog .field-error").lower()
