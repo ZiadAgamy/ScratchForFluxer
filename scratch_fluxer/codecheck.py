@@ -18,7 +18,7 @@ import builtins
 
 from .assets import is_safe_name
 
-ALLOWED_IMPORTS = frozenset({"asyncio", "datetime", "json", "logging", "math", "os", "random", "fluxer"})
+ALLOWED_IMPORTS = frozenset({"asyncio", "datetime", "json", "logging", "math", "os", "random", "time", "fluxer"})
 
 #: Built-in names the generated code may use. Everything else in ``dir(builtins)`` is refused.
 ALLOWED_BUILTINS = frozenset(
@@ -53,6 +53,7 @@ MODULE_ATTRS: dict[str, frozenset[str]] = {
     "logging": frozenset({"basicConfig", "getLogger", "INFO"}),
     "math": frozenset({"floor", "ceil"}),
     "random": frozenset({"randint", "choice"}),
+    "time": frozenset({"monotonic"}),
     "fluxer": frozenset({"Bot", "Intents", "Embed", "File", "GuildMember", "GatewayOpcode", "gateway"}),
 }
 
@@ -96,6 +97,13 @@ ALLOWED_ATTRS = frozenset(
         "utc",
         "isoformat",
         "isdigit",
+        "isalnum",
+        "edit",
+        "fetch_message",
+        "delete_message",
+        "trigger_typing",
+        "to_dict",
+        "execute_webhook",
         "event",
         "command",
         "on",
@@ -246,6 +254,7 @@ class _Checker(ast.NodeVisitor):
     def __init__(self, bound: set[str]) -> None:
         self.bound = bound
         self.login: ast.Call | None = None  # the final `bot.run(os.environ["FLUXER_TOKEN"])`, the only place for either
+        self.http_ok: set[int] = set()  # the `bot._http` in `bot._http.execute_webhook(...)`, the only use of it
 
     @staticmethod
     def fail(node: ast.AST, message: str) -> None:
@@ -300,7 +309,7 @@ class _Checker(ast.NodeVisitor):
         if attr == "run" or _is_name(node.value, "os"):
             self.fail(node, "the bot token may only be read by the last line of the file, to log in")
         if attr.startswith("_"):
-            if attr not in PRIVATE_ATTRS:
+            if attr not in PRIVATE_ATTRS and not (attr == "_http" and id(node) in self.http_ok):
                 self.fail(node, f"the attribute {attr!r} is not allowed")
         elif isinstance(node.value, ast.Name) and node.value.id in MODULE_ATTRS:
             if attr not in MODULE_ATTRS[node.value.id]:
@@ -310,6 +319,15 @@ class _Checker(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
+        func = node.func
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr == "execute_webhook"
+            and isinstance(func.value, ast.Attribute)
+            and func.value.attr == "_http"
+            and _is_name(func.value.value, "bot")
+        ):
+            self.http_ok.add(id(func.value))
         if not isinstance(node.func, ast.Name | ast.Attribute):
             self.fail(node, "only named functions and methods may be called")
         if any(keyword.arg is None for keyword in node.keywords):

@@ -339,6 +339,30 @@ _SPECS: list[dict[str, Any]] = [
         returns="text",
     ),
     block(
+        "sff_bot_ping",
+        "bot",
+        "value",
+        ["bot ping (ms)"],
+        tooltip=("How many milliseconds Fluxer takes to answer your bot. It is measured each time the block runs."),
+        returns="number",
+    ),
+    block(
+        "sff_bot_uptime_seconds",
+        "bot",
+        "value",
+        ["bot uptime (seconds)"],
+        tooltip=("How many seconds your bot has been running since it started."),
+        returns="number",
+    ),
+    block(
+        "sff_bot_uptime_text",
+        "bot",
+        "value",
+        ["bot uptime"],
+        tooltip=("How long your bot has been running, written like 1d 2h 3m 4s."),
+        returns="text",
+    ),
+    block(
         "sff_bot_community_count",
         "bot",
         "value",
@@ -523,6 +547,81 @@ _SPECS: list[dict[str, Any]] = [
         ["unban the person", text("USER", ""), "reason", text("REASON", "")],
         tooltip=("Lets a banned person join again. Paste their ID. Needs the Ban Members permission."),
         needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_send_here_save_id",
+        "messages",
+        "statement",
+        ["send", text("TEXT", "Loading..."), "here and save the message ID in", variable("VAR", "message id")],
+        tooltip=(
+            "Sends a message to this channel and keeps its ID in a variable, so you can edit or delete that message later."
+        ),
+        needs=("message",),
+    ),
+    block(
+        "sff_send_channel_save_id",
+        "messages",
+        "statement",
+        ["send", text("TEXT", "Loading..."), "to channel", text("CHANNEL", "")],
+        ["and save the message ID in", variable("VAR", "message id")],
+        tooltip=(
+            "Sends a message to a channel and keeps its ID in a variable, so you can edit or delete that message later."
+        ),
+    ),
+    block(
+        "sff_edit_message",
+        "messages",
+        "statement",
+        ["edit message", text("ID", ""), "in channel", text("CHANNEL", "")],
+        ["to say", text("TEXT", "Done!")],
+        tooltip=(
+            "Changes the text of one of your bot's own messages (a bot can't edit other people's messages). Paste the message ID and the channel ID, or use the variable you saved the ID in."
+        ),
+    ),
+    block(
+        "sff_delete_message_by_id",
+        "messages",
+        "statement",
+        ["delete message", text("ID", ""), "in channel", text("CHANNEL", "")],
+        tooltip=("Deletes a message by its ID. Deleting other people's messages needs the Manage Messages permission."),
+    ),
+    block(
+        "sff_typing_here",
+        "messages",
+        "statement",
+        ["show that the bot is typing here"],
+        tooltip=(
+            "Shows \u201cthe bot is typing\u2026\u201d in this channel for a few seconds. Use it before a wait to make replies feel natural."
+        ),
+        needs=("message",),
+    ),
+    block(
+        "sff_typing_channel",
+        "messages",
+        "statement",
+        ["show that the bot is typing in channel", text("CHANNEL", "")],
+        tooltip=("Shows \u201cthe bot is typing\u2026\u201d in a channel for a few seconds. Paste the channel's ID."),
+    ),
+    block(
+        "sff_webhook_send",
+        "messages",
+        "statement",
+        ["send", text("TEXT", "Hello!"), "using the webhook", text("URL", "")],
+        ["as the name", text("NAME", "")],
+        tooltip=(
+            "Posts a message through a webhook. Paste the webhook URL from the channel settings. Leave the name empty to use the webhook's own. Keep the URL private: anyone who has it can post."
+        ),
+    ),
+    block(
+        "sff_webhook_embed",
+        "messages",
+        "statement",
+        ["send embed", text("TITLE", "News"), "with text", text("TEXT", "Something happened.")],
+        ["color", menu("COLOR", EMBED_COLOR_OPTIONS)],
+        ["using the webhook", text("URL", ""), "as the name", text("NAME", "")],
+        tooltip=(
+            "Posts a card (title, text and coloured edge) through a webhook. Paste the webhook URL from the channel settings. Leave the name empty to use the webhook's own. Keep the URL private."
+        ),
     ),
     # ---- Message info
     block(

@@ -59,6 +59,14 @@ GENERATED_NAMES = frozenset(
         "math",
         "random",
         "datetime",
+        "time",
+        "STARTED",
+        "edit_message",
+        "delete_message",
+        "ping_ms",
+        "uptime_seconds",
+        "uptime_text",
+        "send_webhook",
         "as_id",
         "moderate",
         "has_role",
@@ -332,6 +340,99 @@ HELPERS: dict[str, dict[str, Any]] = {
         print("Moderation failed (" + action + "). Check the bot's permissions and that its role is above the person's.")
 ''',
     },
+    "edit_message": {
+        "imports": (),
+        "needs": ("as_id",),
+        "source": '''async def edit_message(channel_id, message_id, text):
+    """Change the text of one of the bot's own messages. A problem is printed, never a crash."""
+    if not as_id(channel_id) or not as_id(message_id):
+        print("Edit failed. Give the channel ID and the message ID.")
+        return
+    try:
+        message = await bot.fetch_message(str(as_id(channel_id)), str(as_id(message_id)))
+        await message.edit(str(text))
+    except Exception:
+        print("Edit failed. The bot can only edit its own messages. Check the channel ID and the message ID.")
+''',
+    },
+    "delete_message": {
+        "imports": (),
+        "needs": ("as_id",),
+        "source": '''async def delete_message(channel_id, message_id):
+    """Delete a message by its IDs. A problem is printed, never a crash."""
+    if not as_id(channel_id) or not as_id(message_id):
+        print("Delete failed. Give the channel ID and the message ID.")
+        return
+    try:
+        await bot.delete_message(str(as_id(channel_id)), str(as_id(message_id)))
+    except Exception:
+        print("Delete failed. Check the IDs and that the bot may manage messages.")
+''',
+    },
+    "ping_ms": {
+        "imports": ("time",),
+        "needs": (),
+        "source": '''async def ping_ms():
+    """How long Fluxer takes to answer the bot, in milliseconds (0 if it didn't answer)."""
+    started = time.monotonic()
+    try:
+        await bot.fetch_user(str(bot.user.id))
+    except Exception:
+        return 0
+    return round((time.monotonic() - started) * 1000)
+''',
+    },
+    "uptime_seconds": {
+        "imports": ("time",),
+        "needs": (),
+        "source": '''STARTED = time.monotonic()
+
+
+def uptime_seconds():
+    """How many seconds the bot has been running."""
+    return int(time.monotonic() - STARTED)
+''',
+    },
+    "uptime_text": {
+        "imports": (),
+        "needs": ("uptime_seconds",),
+        "source": '''def uptime_text():
+    """The time the bot has been running, like 1d 2h 3m 4s."""
+    seconds = uptime_seconds()
+    pieces = (
+        (int(seconds / 86400), "d"),
+        (int(seconds % 86400 / 3600), "h"),
+        (int(seconds % 3600 / 60), "m"),
+        (seconds % 60, "s"),
+    )
+    shown = []
+    for amount, unit in pieces:
+        if amount or unit == "s" or shown:
+            shown.append(str(amount) + unit)
+    return " ".join(shown)
+''',
+    },
+    "send_webhook": {
+        "imports": (),
+        "needs": (),
+        "source": '''async def send_webhook(url, content=None, embed=None, username=""):
+    """Post a message through a webhook. The URL (or just ID/token) is read for its last two parts."""
+    parts = str(url).strip().split("?")[0].strip("/").split("/")
+    if len(parts) < 2 or not parts[-2].isdigit() or not parts[-1].replace("-", "").replace("_", "").isalnum():
+        print("Webhook skipped: paste the whole webhook URL.")
+        return
+    try:
+        await bot._http.execute_webhook(
+            parts[-2],
+            parts[-1],
+            content=content,
+            embeds=[embed.to_dict()] if embed else None,
+            username=str(username).strip() or None,
+        )
+    except Exception:
+        print("Webhook failed. Check that the URL is right and the webhook still exists.")
+''',
+    },
     "update_presence": {
         "imports": (),
         "needs": (),
@@ -369,10 +470,16 @@ HELPER_ORDER = [
     "reaction_matches",
     "has_role",
     "moderate",
+    "edit_message",
+    "delete_message",
+    "ping_ms",
+    "uptime_seconds",
+    "uptime_text",
+    "send_webhook",
     "update_presence",
 ]
 
-STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random"]
+STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random", "time"]
 
 
 # --------------------------------------------------------------------------------------------- small utilities
@@ -1123,6 +1230,55 @@ statement_template(
 statement_template(
     "sff_reaction_take_role", 'await moderate({guild}, "remove_role", event.user_id, {ROLE})', "moderate", "as_id"
 )
+statement_template(
+    "sff_typing_here", "channel = await bot.fetch_channel(str({msg}.channel_id))\nawait channel.trigger_typing()"
+)
+statement_template("sff_typing_channel", "channel = await bot.fetch_channel({CHANNEL})\nawait channel.trigger_typing()")
+statement_template("sff_edit_message", "await edit_message({CHANNEL}, {ID}, {TEXT})", "edit_message", "as_id")
+statement_template("sff_delete_message_by_id", "await delete_message({CHANNEL}, {ID})", "delete_message", "as_id")
+
+
+def _send_and_save(where: str) -> StatementFn:
+    """Send a message and keep its ID in a variable, so another block can edit or delete it later."""
+
+    def write(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
+        ident = gen.resolve_variable(node, "VAR", [""])[0]
+        ctx.assigned.add(ident)
+        text = gen.input(node, "TEXT", ctx).code
+        if where == "here":
+            rows.add(indent, f"{ident} = str((await {ctx.message_var}.send({text})).id)")
+        else:
+            rows.add(indent, f"channel = await bot.fetch_channel({gen.input(node, 'CHANNEL', ctx).code})")
+            rows.add(indent, f"{ident} = str((await channel.send({text})).id)")
+
+    return write
+
+
+STATEMENTS["sff_send_here_save_id"] = _send_and_save("here")
+STATEMENTS["sff_send_channel_save_id"] = _send_and_save("channel")
+
+
+def _webhook_statement(with_embed: bool) -> StatementFn:
+    def write(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
+        gen.need("send_webhook")
+        url = gen.input(node, "URL", ctx).code
+        name = gen.input(node, "NAME", ctx).code
+        if with_embed:
+            chosen = gen.menu_value(node, "COLOR")
+            rgb = next(rgb for _label, label, rgb in catalogue.EMBED_COLORS if label == chosen)
+            title = gen.input(node, "TITLE", ctx).code
+            text = gen.input(node, "TEXT", ctx).code
+            rows.add(indent, f"embed = fluxer.Embed(title={title}, description={text}, color=0x{rgb:06X})")
+            rows.add(indent, f"await send_webhook({url}, embed=embed, username={name})")
+        else:
+            rows.add(indent, f"await send_webhook({url}, {gen.input(node, 'TEXT', ctx).code}, username={name})")
+
+    return write
+
+
+STATEMENTS["sff_webhook_send"] = _webhook_statement(False)
+STATEMENTS["sff_webhook_embed"] = _webhook_statement(True)
+
 statement_template("sff_wait", "await asyncio.sleep({SECONDS})", "asyncio")
 statement_template("sff_stop_script", "return")
 statement_template("sff_list_add", "{LIST}.append({ITEM})")
@@ -1134,6 +1290,9 @@ statement_template("sff_reply_file", "await {msg}.reply(file=fluxer.File(ASSETS 
 
 value_template("sff_bot_name", "bot.user.username")
 value_template("sff_bot_community_count", "len(bot.guilds)")
+value_template("sff_bot_ping", "(await ping_ms())", "ping_ms")
+value_template("sff_bot_uptime_seconds", "uptime_seconds()", "uptime_seconds")
+value_template("sff_bot_uptime_text", "uptime_text()", "uptime_text")
 value_template("sff_msg_text", "{msg}.content")
 value_template("sff_msg_author_name", "{msg}.author.display_name")
 value_template("sff_msg_author_mention", "{msg}.author.mention")
