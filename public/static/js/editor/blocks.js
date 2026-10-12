@@ -357,6 +357,43 @@
     return variable;
   }
 
+  /* Delete one of the person's variables or lists, and the blocks that use it (after asking). */
+  async function deleteVariable(kind) {
+    var noun = kind === "List" ? "list" : "variable";
+    var found = variablesOf([kind]);
+    if (!found.length) return;
+    var toolbox = workspace.getToolbox();
+    var shown = toolbox && toolbox.getSelectedItem();
+    var chosen = found[0];
+    if (found.length > 1) {
+      var id = await E.dialogs.choose({
+        title: "Delete a " + noun,
+        message: "Which one?",
+        choices: found.map(function (variable) {
+          return { id: variable.getId(), label: variable.getName(), kind: "ghost" };
+        }),
+        cancelLabel: "Cancel",
+      });
+      if (!id) return;
+      chosen = variableMap().getVariableById(id);
+    }
+    if (!chosen) return;
+    var uses = B.Variables.getVariableUsesById(workspace, chosen.getId()).length;
+    var sentence = uses
+      ? uses + (uses === 1 ? " block uses" : " blocks use") + " “" + chosen.getName() + "”. Delete it and " + (uses === 1 ? "that block?" : "those blocks?")
+      : "Delete the " + noun + " “" + chosen.getName() + "”?";
+    var yes = await E.dialogs.confirm({ title: "Delete " + noun, message: sentence, confirmLabel: "Delete", danger: true });
+    if (yes) variableMap().deleteVariable(chosen);
+    if (toolbox && shown) {
+      try {
+        if (toolbox.getSelectedItem() === shown) toolbox.refreshSelection();
+        else toolbox.setSelectedItem(shown);
+      } catch (_) {
+        /* the list simply stays closed */
+      }
+    }
+  }
+
   // ------------------------------------------------------------------------------------------------ the toolbox
   function variablesOf(kinds) {
     return variableMap()
@@ -383,6 +420,9 @@
     if (category.button) {
       own = category.button.kind === "List" ? "list" : "variable";
       items.push({ kind: "button", text: category.button.label, callbackKey: own === "list" ? "SFF_MAKE_LIST" : "SFF_MAKE_VARIABLE" });
+      if (variablesOf([own === "list" ? "List" : ""]).length) {
+        items.push({ kind: "button", text: "Delete a " + own, callbackKey: own === "list" ? "SFF_DELETE_LIST" : "SFF_DELETE_VARIABLE" });
+      }
     }
     var waiting = { variable: false, list: false };
     (payload.toolbox[categoryId] || []).forEach(function (entry) {
@@ -482,6 +522,12 @@
     });
     workspace.registerButtonCallback("SFF_MAKE_LIST", function () {
       makeVariable("List");
+    });
+    workspace.registerButtonCallback("SFF_DELETE_VARIABLE", function () {
+      deleteVariable("");
+    });
+    workspace.registerButtonCallback("SFF_DELETE_LIST", function () {
+      deleteVariable("List");
     });
 
     workspace.addChangeListener(onEvent);
