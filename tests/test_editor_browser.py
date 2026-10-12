@@ -1336,3 +1336,67 @@ class TestEditingText:
         page.fill("#dlg-input", "")
         page.keyboard.press("Enter")
         assert "name" in page.inner_text("dialog.dialog .field-error").lower()
+
+
+class TestDeletingVariables:
+    def make(self, page, category, name):
+        open_list(page, category)
+        page.locator(".blocklyFlyoutButton").first.click()
+        page.wait_for_selector("dialog.dialog[open] #dlg-input")
+        page.fill("#dlg-input", name)
+        page.keyboard.press("Enter")
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+
+    def names(self, page):
+        return page.evaluate(
+            "() => window.sffEditor.blocks.workspace().getVariableMap().getAllVariables().map((v) => v.getName())"
+        )
+
+    def buttons(self, page):
+        return [t.strip() for t in page.locator(".blocklyFlyoutButton").all_text_contents()]
+
+    def test_the_delete_button_only_shows_when_there_is_something_to_delete(self, open_editor):
+        page = open_editor()
+        open_list(page, "variables")
+        assert "Delete a variable" not in self.buttons(page)
+        page.locator(".blocklyFlyoutButton").first.click()
+        page.wait_for_selector("dialog.dialog[open] #dlg-input")
+        page.fill("#dlg-input", "score")
+        page.keyboard.press("Enter")
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+        page.wait_for_function("() => window.sffEditor.blocks.workspace().getToolbox().getFlyout().isVisible()")
+        assert "Delete a variable" in self.buttons(page)
+
+    def test_a_single_variable_is_deleted_after_asking(self, open_editor):
+        page = open_editor()
+        self.make(page, "variables", "score")
+        page.wait_for_function("() => window.sffEditor.blocks.workspace().getToolbox().getFlyout().isVisible()")
+        page.locator(".blocklyFlyoutButton", has_text="Delete a variable").click()
+        page.wait_for_selector("dialog.dialog[open]")
+        assert "Delete the variable" in page.locator("dialog.dialog[open]").inner_text()
+        page.locator("dialog.dialog[open] button", has_text="Delete").last.click()
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+        assert self.names(page) == []
+
+    def test_cancelling_keeps_the_variable_and_with_two_you_choose_which(self, open_editor):
+        page = open_editor()
+        self.make(page, "variables", "score")
+        page.wait_for_function("() => window.sffEditor.blocks.workspace().getToolbox().getFlyout().isVisible()")
+        page.locator(".blocklyFlyoutButton", has_text="Make a variable").click()
+        page.wait_for_selector("dialog.dialog[open] #dlg-input")
+        page.fill("#dlg-input", "lives")
+        page.keyboard.press("Enter")
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+        page.wait_for_function("() => window.sffEditor.blocks.workspace().getToolbox().getFlyout().isVisible()")
+        page.locator(".blocklyFlyoutButton", has_text="Delete a variable").click()
+        page.wait_for_selector("dialog.dialog[open] .choice")
+        page.locator("dialog.dialog[open] .choice", has_text="lives").click()
+        page.wait_for_selector("dialog.dialog[open] .btn-danger")
+        page.locator("dialog.dialog[open] button", has_text="Cancel").click()
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+        assert sorted(self.names(page)) == ["lives", "score"]
+        page.locator(".blocklyFlyoutButton", has_text="Delete a variable").click()
+        page.locator("dialog.dialog[open] .choice", has_text="lives").click()
+        page.locator("dialog.dialog[open] .btn-danger").click()
+        page.wait_for_selector("dialog.dialog[open]", state="detached")
+        assert self.names(page) == ["score"]

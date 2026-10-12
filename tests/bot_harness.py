@@ -57,6 +57,22 @@ class FakeHTTP:
             return user_data(int(args[0]), "member")
         if name == "create_dm":
             return {"id": "5555", "type": 1}
+        if name == "get_message":
+            return {
+                "id": str(args[1]),
+                "channel_id": str(args[0]),
+                "content": "old text",
+                "author": BOT_USER,
+                "timestamp": "2026-10-10T10:00:00+00:00",
+            }
+        if name == "edit_message":
+            return {
+                "id": str(args[1]),
+                "channel_id": str(args[0]),
+                "content": kwargs.get("content") or "",
+                "author": BOT_USER,
+                "timestamp": "2026-10-10T10:00:00+00:00",
+            }
         if name == "get_guild":
             return {"id": str(args[0]), "name": "Test community"}
         if name == "get_guild_member":

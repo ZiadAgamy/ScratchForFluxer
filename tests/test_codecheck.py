@@ -111,6 +111,7 @@ class TestWhatIsRefused:
             ("x = ''.__class__.__mro__", "is not allowed"),
             ("x = 'a'.format(1)", "'format' is not allowed"),
             ("x = bot._http", "'_http' is not allowed"),
+            ("async def f():\n    await bot._http.delete(1)", "'_http' is not allowed"),
             ("x = fluxer.Client", "fluxer.Client is not allowed"),
             ("x = fluxer.http", "fluxer.http is not allowed"),
             ("x = json.load", "json.load is not allowed"),

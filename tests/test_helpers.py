@@ -6,8 +6,10 @@ breaks what a block promises fails here.
 
 from __future__ import annotations
 
+import datetime
 import math
 import random
+import time
 from typing import Any
 
 import pytest
@@ -17,7 +19,7 @@ from scratch_fluxer.compiler import HELPER_ORDER, HELPERS
 
 @pytest.fixture(scope="module")
 def helpers() -> dict[str, Any]:
-    namespace: dict[str, Any] = {"random": random, "math": math}
+    namespace: dict[str, Any] = {"random": random, "math": math, "time": time, "datetime": datetime}
     for name in HELPER_ORDER:
         if name != "update_presence":  # needs the bot and the gateway; tests/test_generated_bots.py covers it
             exec(HELPERS[name]["source"], namespace)  # noqa: S102 - these are the compiler's own templates
