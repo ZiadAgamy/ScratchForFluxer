@@ -1,8 +1,8 @@
-tests/
-docs/
-deploy/
-data/
-.github/
+/tests/
+/docs/
+/deploy/
+/data/
+/.github/
 node_modules/
 *.md
 !README.md
