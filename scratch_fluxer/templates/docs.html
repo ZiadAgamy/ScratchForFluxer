@@ -61,6 +61,7 @@
     <p class="docs-nav-title">Blocks</p>
     <ul class="docs-nav-blocks">
       <li><a href="#blocks">How blocks work</a></li>
+      <li><a href="#cards">Cards (embeds)</a></li>
       {%- for f in families %}
       <li><a href="#blocks-{{ f.id }}" data-family="{{ f.id }}"><i class="docs-dot" style="--dot: var(--cat-{{ f.id }})"></i>{{ f.name }}</a></li>
       {%- endfor %}
@@ -481,14 +482,30 @@ sudo journalctl -u mybot -f{% endcall %}
         </div>
         <div class="shape">
           <div class="stack docs-stack">
-            {{ example_block({"parts": ["send embed", ("field", "Rules"), "with text", ("field", "Be kind."), "color", ("menu", "blue")]}, "messages") }}
+            {{ example_block({"parts": ["set status to", ("menu", "online")]}, "bot") }}
           </div>
           <h4>Dropdowns</h4>
-          <p>A dark pill with a small arrow is a dropdown. Click it and pick an option, such as a colour or a status.</p>
+          <p>A dark pill with a small arrow is a dropdown. Click it and pick an option, such as a status.</p>
         </div>
       </div>
 
       <p class="muted">Every block below is shown as it looks in the editor. Use the search box in the side menu to find one, for example <em>role</em> or <em>embed</em>.</p>
+    </section>
+
+    <section class="doc" id="cards" aria-labelledby="h-cards">
+      <h2 id="h-cards">Cards (embeds)</h2>
+      <p>A <strong>card</strong> (Fluxer calls it an <em>embed</em>) is a message with a title, some text and a coloured edge. Use <strong>reply with embed</strong> or <strong>send embed</strong> from the Messages family. The block has a <strong>Card options</strong> button: press it to open a small window where you set everything about the card, and watch it change in a preview as you go.</p>
+      {{ shot("embed-popup", "The Card options window: title, text and colour on the left, a preview of the card on the right.", "The Card options window. The preview is on the right.", width=928, height=636, class="shot-narrow") }}
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>Title</strong> and <strong>Text</strong>. Type them here, or plug another block (like <em>author name</em>) into the block's own sockets. If a block is plugged in, the window tells you.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Colour of the edge</strong>: pick one of nine, or any colour with the colour picker or a code like <code>#ff8800</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Link on the title</strong>: people who click the title go to that address. It must start with <code>https://</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Big picture</strong> (under the text) and <strong>small picture</strong> (the thumbnail, top right): use a web address, or one of the pictures you uploaded on the Files tab. Uploaded pictures work in <em>reply with embed</em> and <em>send embed</em>, not in the webhook block.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Author</strong> (small name above the title, with an optional picture) and <strong>footer</strong> (small text at the bottom, with an optional picture).</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Show the time</strong> adds the time the message was sent.</span></li>
+      </ul>
+      {% call callout("note", "The preview is close, not exact.") %}Pictures from a web address are not shown in the preview (the editor only loads its own files), but they are sent. Fluxer draws the final card in its own style.{% endcall %}
+      <p>Press <strong>Reset</strong> in the window to go back to a plain card. Cards you made before this window existed keep their colour.</p>
     </section>
 
     <div id="blocks-reference">
