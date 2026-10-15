@@ -35,7 +35,7 @@ FAMILY_GUIDE: dict[str, dict[str, str]] = {
             "members. Most of them only make sense inside an event that has a message or a person, and the editor tells "
             "you if one is in the wrong place."
         ),
-        "try": "Snap <strong>reply with embed</strong> under a command to answer with a coloured card instead of plain text.",
+        "try": "Snap <strong>reply with embed</strong> under a command to answer with a coloured card instead of plain text, then press its <strong>Card options</strong> button to change the colour, add a picture, a link and more.",
     },
     "info": {
         "intro": (

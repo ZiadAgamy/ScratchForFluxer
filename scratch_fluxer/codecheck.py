@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import ast
 import builtins
+import re
 
 from .assets import is_safe_name
 
@@ -103,6 +104,10 @@ ALLOWED_ATTRS = frozenset(
         "delete_message",
         "trigger_typing",
         "to_dict",
+        "set_image",
+        "set_thumbnail",
+        "set_author",
+        "set_footer",
         "execute_webhook",
         "event",
         "command",
@@ -131,6 +136,9 @@ ALLOWED_ATTRS = frozenset(
 )
 #: Private names the presence helper needs (fluxer.py has no public way to set a custom status yet).
 PRIVATE_ATTRS = frozenset({"_gateway", "_send"})
+
+#: The name a picture is sent under when an embed shows it: image.png or thumbnail.jpg.
+_PLAIN_FILENAME = re.compile(r"^(image|thumbnail)\.[a-z0-9]{1,5}$")
 
 DECORATOR_METHODS = frozenset({"event", "command", "on"})
 CONSTANT_TYPES = (str, int, float, bool, type(None))
@@ -348,7 +356,14 @@ class _Checker(ast.NodeVisitor):
             if func.attr == "read_text" and not _is_asset_path(func.value):
                 self.fail(node, "only files in the assets folder can be read, by a name written in the blocks")
             if func.attr == "File" and _is_name(func.value, "fluxer"):
-                if len(node.args) != 1 or node.keywords or not _is_asset_path(node.args[0]):
+                plain_name = all(
+                    kw.arg == "filename"
+                    and isinstance(kw.value, ast.Constant)
+                    and isinstance(kw.value.value, str)
+                    and _PLAIN_FILENAME.match(kw.value.value)
+                    for kw in node.keywords
+                )
+                if len(node.args) != 1 or len(node.keywords) > 1 or not plain_name or not _is_asset_path(node.args[0]):
                     self.fail(node, "only files in the assets folder can be sent, by a name written in the blocks")
 
     def visit_BinOp(self, node: ast.BinOp) -> None:

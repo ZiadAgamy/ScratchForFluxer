@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from . import assets as assetlib
-from . import catalogue, codecheck
+from . import catalogue, codecheck, embeds
 
 log = logging.getLogger("scratch_fluxer.compiler")
 
@@ -771,7 +771,7 @@ def _parts_of(block_type: str) -> dict[str, dict[str, Any]]:
             for part in line:
                 if isinstance(part, dict):
                     name = part.get("input") or part.get("field") or part.get("menu") or part.get("var")
-                    name = name or part.get("asset") or part.get("number")
+                    name = name or part.get("asset") or part.get("number") or part.get("embed")
                     if name:
                         cached[name] = part
         _PARTS[block_type] = cached
@@ -938,10 +938,13 @@ class Generator:
 
     def asset_value(self, node: Node, name: str) -> str | None:
         part = _parts_of(node.type)[name]
+        raw = node.fields.get(name)
+        return self.checked_asset(node, raw if isinstance(raw, str) else "", part["kinds"])
+
+    def checked_asset(self, node: Node, file_name: str, kinds: list[str]) -> str | None:
+        """``file_name`` if it is an uploaded file this block may use, else None (and the reason is reported)."""
         self.uses_assets = True  # even when the choice is wrong, the file defines ASSETS so it stays readable
         self.imports.add("pathlib")
-        raw = node.fields.get(name)
-        file_name = raw if isinstance(raw, str) else ""
         if not file_name:
             self.error("Choose a file in this block. Upload one on the Files tab first.", node)
             return None
@@ -953,12 +956,20 @@ class Generator:
             if kind is None:
                 self.error(f"The file “{file_name}” isn't uploaded. Add it on the Files tab.", node)
                 return None
-            if kind not in part["kinds"]:
-                self.error(f"“{file_name}” is a {kind} file, but this block needs {' or '.join(part['kinds'])}.", node)
+            if kind not in kinds:
+                self.error(f"“{file_name}” is a {kind} file, but this block needs {' or '.join(kinds)}.", node)
                 return None
         if file_name not in self.asset_names:
             self.asset_names.append(file_name)
         return file_name
+
+    def embed_options(self, node: Node, name: str = "OPTIONS") -> dict[str, Any]:
+        """What the pop-up of an embed block set (colour, link, pictures, author, footer, time), checked again."""
+        part = _parts_of(node.type)[name]
+        raw = node.fields.get(name)
+        if raw is None and "COLOR" in node.fields:  # saved before the pop-up existed: the colour was a menu
+            raw = embeds.from_legacy_color(node.fields.get("COLOR"))
+        return embeds.parse(raw, files=part["files"])
 
     # ---- blocks as values
     def value(self, node: Node | None, want: str, ctx: Context, parent: Node, *, quiet: bool = False) -> Expr:
@@ -1264,11 +1275,7 @@ def _webhook_statement(with_embed: bool) -> StatementFn:
         url = gen.input(node, "URL", ctx).code
         name = gen.input(node, "NAME", ctx).code
         if with_embed:
-            chosen = gen.menu_value(node, "COLOR")
-            rgb = next(rgb for _label, label, rgb in catalogue.EMBED_COLORS if label == chosen)
-            title = gen.input(node, "TITLE", ctx).code
-            text = gen.input(node, "TEXT", ctx).code
-            rows.add(indent, f"embed = fluxer.Embed(title={title}, description={text}, color=0x{rgb:06X})")
+            _write_embed(gen, node, ctx, rows, indent)
             rows.add(indent, f"await send_webhook({url}, embed=embed, username={name})")
         else:
             rows.add(indent, f"await send_webhook({url}, {gen.input(node, 'TEXT', ctx).code}, username={name})")
@@ -1324,16 +1331,66 @@ def _console_log(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: i
     rows.add(indent, gen.render(node, ctx, "log.{LEVEL!}({TEXT})"))
 
 
+def _write_embed(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int) -> list[str]:
+    """Writes ``embed = fluxer.Embed(...)`` and what the pop-up added. Returns the files to send with it."""
+    options = gen.embed_options(node)
+    title = gen.input(node, "TITLE", ctx).code
+    text = gen.input(node, "TEXT", ctx).code
+    colour = f"0x{embeds.rgb(options):06X}"
+    extras = {"url", "image", "thumbnail", "author", "footer", "time"} & set(options)
+    if not extras:  # the plain card is one line, as it always was
+        rows.add(indent, f"embed = fluxer.Embed(title={title}, description={text}, color={colour})")
+        return []
+    arguments = [f"title={title}", f"description={text}"]
+    if "url" in options:
+        arguments.append(f"url={python_string(options['url'])}")
+    arguments.append(f"color={colour}")
+    if options.get("time"):
+        gen.imports.add("datetime")
+        arguments.append("timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat()")
+    rows.add(indent, "embed = fluxer.Embed(")
+    for argument in arguments:
+        rows.add(indent + 1, argument + ",")
+    rows.add(indent, ")")
+    files: list[str] = []
+    for key, method in (("image", "set_image"), ("thumbnail", "set_thumbnail")):
+        value = options.get(key)
+        if not value:
+            continue
+        chosen = embeds.file_name(value)
+        if chosen is None:
+            rows.add(indent, f"embed.{method}(url={python_string(value)})")
+            continue
+        if gen.checked_asset(node, chosen, ["image"]) is None:
+            continue
+        # The picture is sent with the message under a plain name of its own, so its address never has to be escaped.
+        plain = f"{key}{assetlib.extension(chosen)}"
+        rows.add(indent, f"embed.{method}(url={python_string('attachment://' + plain)})")
+        files.append(f"fluxer.File(ASSETS / {python_string(chosen)}, filename={python_string(plain)})")
+    if "author" in options:
+        arguments = [f"name={python_string(options['author'])}"]
+        if "author_icon" in options:
+            arguments.append(f"icon_url={python_string(options['author_icon'])}")
+        rows.add(indent, f"embed.set_author({', '.join(arguments)})")
+    if "footer" in options:
+        arguments = [f"text={python_string(options['footer'])}"]
+        if "footer_icon" in options:
+            arguments.append(f"icon_url={python_string(options['footer_icon'])}")
+        rows.add(indent, f"embed.set_footer({', '.join(arguments)})")
+    return files
+
+
 def _embed_statement(verb: str) -> StatementFn:
-    """An embed (a card with a title, text and coloured edge), sent as a new message or as a reply."""
+    """An embed (a card), sent as a new message or as a reply."""
 
     def write(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
-        chosen = gen.menu_value(node, "COLOR")
-        rgb = next(rgb for _label, name, rgb in catalogue.EMBED_COLORS if name == chosen)
-        title = gen.input(node, "TITLE", ctx).code
-        text = gen.input(node, "TEXT", ctx).code
-        rows.add(indent, f"embed = fluxer.Embed(title={title}, description={text}, color=0x{rgb:06X})")
-        rows.add(indent, f"await {ctx.message_var}.{verb}(embed=embed)")
+        files = _write_embed(gen, node, ctx, rows, indent)
+        sent = "embed=embed"
+        if len(files) == 1:
+            sent += f", file={files[0]}"
+        elif files:
+            sent += f", files=[{', '.join(files)}]"
+        rows.add(indent, f"await {ctx.message_var}.{verb}({sent})")
 
     return write
 

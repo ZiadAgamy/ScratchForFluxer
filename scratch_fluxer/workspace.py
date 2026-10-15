@@ -23,7 +23,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from . import catalogue
+from . import catalogue, embeds
 from .compiler import MAX_NUMBER, clean_text, default_workspace
 
 MAX_NODES = 20_000  # a hard stop while reading; the compiler has its own, friendlier limit well below this
@@ -220,6 +220,11 @@ class _Cleaner:
             elif "asset" in part:
                 value = raw.get(part["asset"])
                 out[part["asset"]] = clean_text(value, MAX_ASSET_NAME) if isinstance(value, str) else ""
+            elif "embed" in part:
+                value = raw.get(part["embed"])
+                if value is None and "COLOR" in raw:  # an embed block from before the pop-up: its colour was a menu
+                    value = embeds.from_legacy_color(raw["COLOR"])
+                out[part["embed"]] = embeds.clean(value, files=part["files"])
         return out
 
     def block(self, raw: dict[str, Any], nesting: int, levels: int) -> dict[str, Any]:
@@ -416,6 +421,10 @@ def files_used(workspace: dict[str, Any]) -> Counter[str]:
             name = node.get("fields", {}).get(part.get("asset", ""))
             if name:
                 used[name] += 1
+            if "embed" in part:
+                options = embeds.parse(node.get("fields", {}).get(part["embed"]), files=part["files"])
+                for picture in embeds.files_in(options):
+                    used[picture] += 1
         if "next" in node:
             pending.append(node["next"]["block"])
         for slot in node.get("inputs", {}).values():

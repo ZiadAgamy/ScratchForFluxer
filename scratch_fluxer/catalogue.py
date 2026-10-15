@@ -27,6 +27,9 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from . import embeds
+from .embeds import EMBED_COLOR_OPTIONS, EMBED_COLORS  # noqa: F401 - the colours live in embeds.py; kept here for callers
+
 # --------------------------------------------------------------------------------------------- categories
 
 CATEGORY_ORDER = ["events", "bot", "messages", "info", "control", "operators", "variables", "lists", "data"]
@@ -96,18 +99,6 @@ INK = "#15121c"
 
 STATUS_OPTIONS = [["online", "online"], ["idle", "idle"], ["do not disturb", "dnd"], ["invisible", "invisible"]]
 LOG_LEVEL_OPTIONS = [["info", "info"], ["warning", "warning"], ["error", "error"]]
-EMBED_COLORS = [
-    ["blue", "blue", 0x176DFF],
-    ["green", "green", 0x52C987],
-    ["yellow", "yellow", 0xF5B335],
-    ["orange", "orange", 0xF59A4D],
-    ["red", "red", 0xF2735A],
-    ["pink", "pink", 0xEE6A93],
-    ["purple", "purple", 0xA98BFF],
-    ["teal", "teal", 0x2EC4B0],
-    ["grey", "grey", 0x8B8998],
-]
-EMBED_COLOR_OPTIONS = [[label, value] for label, value, _hex in EMBED_COLORS]
 MATH_OPTIONS = [["+", "add"], ["−", "subtract"], ["×", "multiply"], ["÷", "divide"], ["mod", "mod"]]
 COMPARE_OPTIONS = [["=", "eq"], ["≠", "ne"], ["<", "lt"], [">", "gt"], ["≤", "le"], ["≥", "ge"]]
 LOGIC_OPTIONS = [["and", "and"], ["or", "or"]]
@@ -159,6 +150,15 @@ def variable(name: str, default: str, *, kinds: tuple[str, ...] = ("",)) -> dict
 def asset(name: str, kinds: tuple[str, ...], default: str = "") -> dict[str, Any]:
     """A dropdown of the files the person uploaded, limited to the kinds this block can use."""
     return {"asset": name, "kinds": list(kinds), "default": default}
+
+
+def embed_options(name: str = "OPTIONS", *, files: bool = True) -> dict[str, Any]:
+    """The button on an embed block that opens the pop-up: colour, link, pictures, author, footer and time.
+
+    The value is a small piece of JSON (see ``embeds.py``). ``files`` says whether the block can send a file of its own
+    (a webhook can't, so its pictures must be web addresses).
+    """
+    return {"embed": name, "default": "{}", "max": embeds.MAX_JSON, "files": files}
 
 
 def do(name: str = "DO") -> dict[str, Any]:
@@ -399,8 +399,11 @@ _SPECS: list[dict[str, Any]] = [
         "messages",
         "statement",
         ["send embed", text("TITLE", "Rules"), "with text", text("TEXT", "Be kind.")],
-        ["color", menu("COLOR", EMBED_COLOR_OPTIONS)],
-        tooltip="Sends a card with a title, some text and a coloured edge to this channel.",
+        [embed_options()],
+        tooltip=(
+            "Sends a card (an embed) to this channel. Press “Card options” to change its colour, add a link, a picture, "
+            "a small picture (thumbnail), an author, a footer or the time."
+        ),
         needs=("message",),
     ),
     block(
@@ -408,8 +411,11 @@ _SPECS: list[dict[str, Any]] = [
         "messages",
         "statement",
         ["reply with embed", text("TITLE", "Rules"), "with text", text("TEXT", "Be kind.")],
-        ["color", menu("COLOR", EMBED_COLOR_OPTIONS)],
-        tooltip="Replies with a card: a title, some text and a coloured edge.",
+        [embed_options()],
+        tooltip=(
+            "Replies with a card (an embed). Press “Card options” to change its colour, add a link, a picture, "
+            "a small picture (thumbnail), an author, a footer or the time."
+        ),
         needs=("message",),
     ),
     block(
@@ -617,10 +623,12 @@ _SPECS: list[dict[str, Any]] = [
         "messages",
         "statement",
         ["send embed", text("TITLE", "News"), "with text", text("TEXT", "Something happened.")],
-        ["color", menu("COLOR", EMBED_COLOR_OPTIONS)],
+        [embed_options(files=False)],
         ["using the webhook", text("URL", ""), "as the name", text("NAME", "")],
         tooltip=(
-            "Posts a card (title, text and coloured edge) through a webhook. Paste the webhook URL from the channel settings. Leave the name empty to use the webhook's own. Keep the URL private."
+            "Posts a card (an embed) through a webhook. Press “Card options” for the colour, a link, pictures (web "
+            "addresses only), an author, a footer or the time. Paste the webhook URL from the channel settings. Leave "
+            "the name empty to use the webhook's own. Keep the URL private."
         ),
     ),
     # ---- Message info
@@ -1197,6 +1205,8 @@ def _blockly_arg(part: dict[str, Any]) -> dict[str, Any]:
         }
     if "asset" in part:
         return {"type": "field_sff_asset", "name": part["asset"], "kinds": part["kinds"]}
+    if "embed" in part:
+        return {"type": "field_sff_embed", "name": part["embed"], "files": part["files"], "value": part["default"]}
     raise ValueError(f"unknown part: {part!r}")
 
 
@@ -1262,13 +1272,14 @@ def browser_payload() -> dict[str, Any]:
         "toolbox": {key: [toolbox_entry(type_) for type_ in TOOLBOX[key]] for key in CATEGORY_ORDER},
         "hats": HATS,
         "locked": list(LOCKED_TYPES),
+        "embed": embeds.browser_config(),
     }
 
 
 # --------------------------------------------------------------------------------------------- the landing page
 
 
-_PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "statements")
+_PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "embed", "statements")
 
 
 def _part_names(part: dict[str, Any]) -> list[str]:
@@ -1306,6 +1317,8 @@ def example(type_: str, **values: str) -> dict[str, Any]:
             elif "var" in part or "asset" in part:
                 key = part.get("var") or part["asset"]
                 parts.append(("menu", values.get(key, part["default"])))
+            elif "embed" in part:
+                parts.append(("menu", "Card options"))
             # statement slots are drawn by the landing page as the block's body, not as parts
     out: dict[str, Any] = {"parts": parts}
     if spec["shape"] == "hat":
