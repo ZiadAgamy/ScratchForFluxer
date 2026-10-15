@@ -15,6 +15,7 @@
     {% endif %}
 
     <div class="header-actions">
+      <a class="header-link{% if page == 'docs' %} is-current{% endif %}" href="/docs" aria-label="Docs"{% if page == 'docs' %} aria-current="page"{% endif %}>{{ icon("book-open-text") }}<span>Docs</span></a>
       {% if user %}
         <a class="btn btn-secondary btn-sm" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
         <details class="menu">
