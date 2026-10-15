@@ -1,0 +1,696 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, social, example_block %}
+{% block title %}Docs - {{ app_name }}{% endblock %}
+{% block description %}A step-by-step guide for beginners: create a Fluxer bot, add its token, build it with blocks, run it, download main.py and host it yourself.{% endblock %}
+{% block meta %}{{ social(app_name, "Docs - " ~ app_name, "A step-by-step guide for beginners: create a Fluxer bot, add its token, build it with blocks, run it and download main.py.", og_image, canonical) }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ static('css/docs.css') }}">{% endblock %}
+
+{#- One screenshot, with its caption. The pictures are taken from the real site by scripts/make_docs_images.py. -#}
+{% macro shot(name, alt, caption, width=1360, height=800, class="") -%}
+<figure class="shot {{ class }}">
+  <a class="shot-link" href="{{ static('img/docs/' ~ name ~ '.png') }}" target="_blank" rel="noopener" aria-label="Open the picture full size">
+    <img src="{{ static('img/docs/' ~ name ~ '.png') }}" alt="{{ alt }}" width="{{ width }}" height="{{ height }}" loading="lazy" decoding="async">
+  </a>
+  <figcaption>{{ caption }}</figcaption>
+</figure>
+{%- endmacro %}
+
+{#- A callout. kind: tip | warn | note -#}
+{% macro callout(kind, title) -%}
+<aside class="callout callout-{{ kind }}" role="note">
+  {{ icon({"tip": "lightbulb", "warn": "warning", "note": "info"}[kind]) }}
+  <div><strong>{{ title }}</strong> {{ caller() }}</div>
+</aside>
+{%- endmacro %}
+
+{#- A code box with a Copy button (docs.js adds the button). -#}
+{% macro code(label="") -%}
+<div class="codebox"{% if label %} data-label="{{ label }}"{% endif %}><pre><code>{{ caller() | trim }}</code></pre></div>
+{%- endmacro %}
+
+{% block content %}
+<div class="container docs">
+  <details class="docs-toc-mobile">
+    <summary>{{ icon("list") }}<span>On this page</span>{{ icon("caret-down") }}</summary>
+    <div class="docs-toc-body" data-mirror="#docs-nav"></div>
+  </details>
+
+  {#- ============================================================ side navigation -#}
+  <nav class="docs-nav" id="docs-nav" aria-label="Docs">
+    <label class="docs-search" for="docs-search-input">
+      {{ icon("magnifying-glass") }}
+      <input id="docs-search-input" type="search" placeholder="Search the blocks…" autocomplete="off" spellcheck="false" aria-controls="blocks-reference">
+    </label>
+
+    <p class="docs-nav-title">Getting started</p>
+    <ul>
+      <li><a href="#welcome">Welcome</a></li>
+      <li><a href="#create-bot">Create your bot on Fluxer</a></li>
+      <li><a href="#add-token">Add your bot token</a></li>
+    </ul>
+
+    <p class="docs-nav-title">Build and run</p>
+    <ul>
+      <li><a href="#editor-tour">A tour of the editor</a></li>
+      <li><a href="#first-bot">Your first bot</a></li>
+      <li><a href="#run">Run your bot</a></li>
+      <li><a href="#download">Download main.py</a></li>
+      <li><a href="#run-yourself">Run main.py yourself</a></li>
+    </ul>
+
+    <p class="docs-nav-title">Blocks</p>
+    <ul class="docs-nav-blocks">
+      <li><a href="#blocks">How blocks work</a></li>
+      {%- for f in families %}
+      <li><a href="#blocks-{{ f.id }}" data-family="{{ f.id }}"><i class="docs-dot" style="--dot: var(--cat-{{ f.id }})"></i>{{ f.name }}</a></li>
+      {%- endfor %}
+    </ul>
+
+    <p class="docs-nav-title">More</p>
+    <ul>
+      <li><a href="#files">Files and images</a></li>
+      <li><a href="#manage">Manage your bots</a></li>
+      <li><a href="#troubleshooting">Troubleshooting</a></li>
+      <li><a href="#faq">Questions</a></li>
+    </ul>
+  </nav>
+
+  {#- ============================================================ the guide -#}
+  <article class="docs-main" id="docs-main">
+
+    <header class="docs-head" id="welcome">
+      <p class="eyebrow">Docs</p>
+      <h1>Build a Fluxer bot with blocks</h1>
+      <p class="lead">This guide takes you from nothing to a bot that answers in your community. No coding needed, and every step says exactly where to click. Start at the top, or jump to the part you need.</p>
+    </header>
+
+    <section class="doc" aria-labelledby="h-how">
+      <h2 id="h-how">How it works</h2>
+      <p>You snap <strong>blocks</strong> together in your browser. {{ app_name }} turns the blocks into a Python file called <code>main.py</code>, and that file is your bot. Run it here with one button, or download it and run it anywhere.</p>
+
+      <ol class="flow" aria-label="How your bot gets online">
+        <li><span class="flow-icon">{{ icon("puzzle-piece") }}</span><strong>Blocks</strong><span>You build in the editor.</span></li>
+        <li class="flow-arrow" aria-hidden="true">{{ icon("arrow-right") }}</li>
+        <li><span class="flow-icon">{{ icon("file-code") }}</span><strong>main.py</strong><span>Python written for you.</span></li>
+        <li class="flow-arrow" aria-hidden="true">{{ icon("arrow-right") }}</li>
+        <li><span class="flow-icon">{{ icon("play") }}</span><strong>Run</strong><span>On our runner, or on your own machine.</span></li>
+        <li class="flow-arrow" aria-hidden="true">{{ icon("arrow-right") }}</li>
+        <li><span class="flow-icon">{{ icon("robot") }}</span><strong>Your bot</strong><span>Online in your community.</span></li>
+      </ol>
+
+      <h3>What you need</h3>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span>A <strong>Fluxer account</strong> with a verified email address (Fluxer asks for this before you can create a bot).</span></li>
+        <li>{{ icon("check-circle") }}<span>A <strong>community</strong> on Fluxer where you are allowed to add bots, such as one you created.</span></li>
+        <li>{{ icon("check-circle") }}<span>About <strong>ten minutes</strong>.</span></li>
+      </ul>
+
+      <details class="words">
+        <summary>{{ icon("book-open-text") }}<span>Words you will see</span>{{ icon("caret-down") }}</summary>
+        <dl>
+          <dt>Bot</dt><dd>A helper account that lives in your community and answers when something happens, such as someone typing a command.</dd>
+          <dt>Application</dt><dd>What Fluxer calls the page where a bot is set up. One application holds one bot.</dd>
+          <dt>Token</dt><dd>The bot's password. Whoever has it can control your bot, so keep it secret.</dd>
+          <dt>Community</dt><dd>A place on Fluxer with channels and members. fluxer.py calls it a <em>guild</em>, so you may see that word in code.</dd>
+          <dt>Command</dt><dd>A message that starts with the bot's prefix and a name, like <code>!ping</code>.</dd>
+          <dt>Prefix</dt><dd>The character at the start of every command. It is <code>!</code> unless you change it.</dd>
+          <dt>Event</dt><dd>Something that happens: the bot comes online, a message arrives, someone joins.</dd>
+          <dt>Block</dt><dd>One puzzle piece. Blocks snap together into scripts.</dd>
+          <dt>Console</dt><dd>The panel where your running bot writes what it is doing, including errors.</dd>
+          <dt>Runner</dt><dd>The server that keeps your bots running when you press Run.</dd>
+        </dl>
+      </details>
+    </section>
+
+    {#- ============================================================ 1. create the bot on Fluxer -#}
+    <section class="doc" id="create-bot" aria-labelledby="h-create">
+      <p class="part">Step 1</p>
+      <h2 id="h-create">Create your bot on Fluxer</h2>
+      <p>First the bot has to exist on Fluxer. This part happens on Fluxer's own website, not here. Fluxer may rename or move a button from time to time. If a label below doesn't match what you see, look for the closest one.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Open Fluxer and log in</h3>
+          <p>Go to <a href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ fluxer_web_url|replace("https://", "")|replace("http://", "") }}</a>. Make sure your email address is verified, because Fluxer only lets verified accounts create bots.</p>
+        </li>
+        <li>
+          <h3>Open <em>User Settings</em>, then <em>Applications</em></h3>
+          <p>Look for the settings (cog) icon near your name. Applications is one of the pages inside it.</p>
+        </li>
+        <li>
+          <h3>Create an application</h3>
+          <p>Choose a name. This will be the name people see for your bot, so pick one you like. You can change it later.</p>
+        </li>
+        <li>
+          <h3>Add a bot to the application</h3>
+          <p>On the application's page, add a bot. An application can have one bot.</p>
+        </li>
+        <li>
+          <h3>Copy the bot's token</h3>
+          <p>Press <strong>Regenerate</strong> next to the bot token and copy the new token. Fluxer may ask for your password first, and for a code from your authenticator app if you use one.</p>
+          {% call callout("warn", "The token is shown only once.") %}Copy it straight away and keep it somewhere private. If you lose it, press Regenerate again to get a new one. The old one stops working at that moment.{% endcall %}
+        </li>
+      </ol>
+
+      <h3>What a token looks like</h3>
+      <p>A token has two parts joined by a dot. The first part is your application's ID, which is safe to share. The second part is the secret.</p>
+      <div class="token" aria-label="Example of a bot token, split into its application ID and its secret">
+        <div class="token-line"><span class="token-id">1234567890123456</span><span class="token-dot">.</span><span class="token-secret">aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789</span></div>
+        <div class="token-keys">
+          <span class="token-key token-key-id">{{ icon("hash") }}Application ID. Safe to share.</span>
+          <span class="token-key token-key-secret">{{ icon("lock-key") }}Secret. Never share it.</span>
+        </div>
+      </div>
+      <p class="muted">That token is made up. Never paste a real one in a chat, a screenshot or a public file. If you ever do, press Regenerate on Fluxer at once.</p>
+
+      <ol class="steps steps-continued" start="6">
+        <li>
+          <h3>Invite the bot to your community</h3>
+          <p>Your bot has to be a member of the community before it can answer. Open this address in your browser, after swapping <code>YOUR_APPLICATION_ID</code> for the first part of your token (the numbers before the dot):</p>
+          {% call code("Invite link") %}https://fluxer.app/oauth2/authorize?client_id=YOUR_APPLICATION_ID&amp;scope=bot&amp;permissions=68608{% endcall %}
+          <p>Pick your community when Fluxer asks, then confirm. You need the <em>Manage Community</em> permission there (it may be called <em>Manage Guild</em>). The number <code>68608</code> asks for the basics: see channels, send messages and read message history. If your bot will kick, ban, time out or give roles, ask for those permissions too, and see <a href="#trouble-roles">Roles and moderation</a>.</p>
+        </li>
+      </ol>
+      {% call callout("note", "Want to double-check?") %}Fluxer's own pages explain applications and invites in more detail at <a href="https://docs.fluxer.app" target="_blank" rel="noopener noreferrer">docs.fluxer.app</a>.{% endcall %}
+    </section>
+
+    {#- ============================================================ 2. add the token -#}
+    <section class="doc" id="add-token" aria-labelledby="h-token">
+      <p class="part">Step 2</p>
+      <h2 id="h-token">Add your bot token</h2>
+      <p>Now bring the bot into {{ app_name }}. You log in with Fluxer, paste the token, and the editor opens.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Log in with Fluxer</h3>
+          <p>Press <strong>Log in with Fluxer</strong> at the top right of any page. Fluxer asks you to allow the login. We only get your name and avatar. We never see your password, your email or your messages.</p>
+          {{ shot("login", "The login page of the site, with a Log in with Fluxer button.", "The login page.", width=1360, height=664) }}
+        </li>
+        <li>
+          <h3>Press <em>Add a bot</em></h3>
+          <p>You land on <strong>My bots</strong>. It is empty the first time. Press <strong>Add a bot</strong>.</p>
+          {{ shot("my-bots-empty", "The My bots page with no bots yet and an Add a bot button.", "My bots, before you have added anything.", width=1216, height=743) }}
+        </li>
+        <li>
+          <h3>Paste the token and check it</h3>
+          <p>Paste the token into the box (<span class="badge">1</span>). The eye button next to it shows or hides what you typed. Then press <strong>Check token</strong> (<span class="badge">2</span>). We ask Fluxer if the token is real and belongs to you.</p>
+          {{ shot("add-token", "The Add a bot page with a token pasted into the box and the Check token button below it.", "Paste the token, then press Check token.", width=1216, height=680) }}
+        </li>
+        <li>
+          <h3>Name it and save</h3>
+          <p>If the token is good, you see your bot's name and avatar. Type the name you want to see in {{ app_name }} (<span class="badge">1</span>). It is only used here and you can change it later. Press <strong>Save bot</strong> (<span class="badge">2</span>) and the editor opens.</p>
+          {{ shot("add-confirm", "The Add a bot page after the token was checked, showing the bot's name, a name box and a Save bot button.", "Fluxer confirmed the token. Give the bot a name and save.", width=1216, height=759) }}
+        </li>
+      </ol>
+
+      {% call callout("tip", "Where does the token go?") %}It is encrypted before it is stored and never shown again, only its last four characters so you can tell bots apart. No block can read it, so your bot can't post it into chat by mistake. See the <a href="/privacy">privacy page</a> for the details.{% endcall %}
+      <p class="muted">You can add up to {{ max_bots }} bots to one account.</p>
+    </section>
+
+    {#- ============================================================ 3. the editor -#}
+    <section class="doc" id="editor-tour" aria-labelledby="h-tour">
+      <p class="part">Step 3</p>
+      <h2 id="h-tour">A tour of the editor</h2>
+      <p>The editor has three parts: the blocks on the left, the Python they write on the right, and the console at the bottom right. Everything is saved for you as you go. Look for <em>Saved</em> at the top.</p>
+
+      {{ shot("editor-tour", "The block editor with numbers on the block families, the workspace, the Run button, the Get code button, the Python code and the console.", "The editor. The numbers match the list below.") }}
+
+      <ol class="legend">
+        <li><span class="badge">1</span><div><strong>Block families.</strong> Press one to open its blocks. There are nine, each with its own colour. See <a href="#blocks">Blocks</a>.</div></li>
+        <li><span class="badge">2</span><div><strong>Workspace.</strong> Drag blocks here and snap them together. Drag a block to the bin (or press <kbd>Delete</kbd>) to remove it. The sparkle button tidies everything up, and the arrows undo and redo.</div></li>
+        <li><span class="badge">3</span><div><strong>Run, Restart, Stop.</strong> Start your bot, restart it with your latest blocks, or stop it. See <a href="#run">Run your bot</a>.</div></li>
+        <li><span class="badge">4</span><div><strong>Get code.</strong> Download <code>main.py</code> or a folder with everything. See <a href="#download">Download main.py</a>.</div></li>
+        <li><span class="badge">5</span><div><strong>Python, Files and Problems.</strong> Python shows the code your blocks write, live. Files holds the pictures and data you uploaded. Problems lists anything that needs fixing before the bot can run.</div></li>
+        <li><span class="badge">6</span><div><strong>Console.</strong> What your bot says while it runs, including warnings and errors.</div></li>
+      </ol>
+
+      <p>Two blocks are already there and can't be deleted: <strong>create the bot with command prefix</strong> at the top, and <strong>log in with the saved bot token</strong> at the bottom. They create your bot and connect it to Fluxer. You only ever need to change the prefix.</p>
+
+      {% call callout("tip", "Using a phone?") %}The editor works on small screens too. The bar at the bottom switches between Blocks, Python, Files, Problems and Console.{% endcall %}
+      {{ shot("editor-phone", "The editor on a phone: the blocks fill the screen and a bar at the bottom switches between Blocks, Python, Files, Problems and Console.", "On a phone, the bar at the bottom switches views.", width=780, height=1600, class="shot-phone") }}
+    </section>
+
+    {#- ============================================================ 4. first bot -#}
+    <section class="doc" id="first-bot" aria-labelledby="h-first">
+      <p class="part">Step 4</p>
+      <h2 id="h-first">Your first bot</h2>
+      <p>A new bot already knows two things. When it comes online it writes <em>Bot is online!</em> to the console, and when someone types <code>!ping</code> it answers <em>Pong!</em>. Let's teach it a second command, <code>!hello</code>, that greets people by name.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Read the blocks that are already there</h3>
+          <p>Each yellow block starts a script. <strong>when the command ping is used</strong> runs when someone types the prefix and <code>ping</code>, and the purple block under it, <strong>reply with Pong!</strong>, answers. Click the white box that says <em>Pong!</em> and type something else to change the answer.</p>
+          <div class="stack docs-stack">
+            {{ example_block({"hat": True, "parts": ["when the command", ("field", "ping"), "is used"]}, "events") }}
+            {{ example_block({"parts": ["reply with", ("field", "Pong!")]}, "messages") }}
+          </div>
+        </li>
+        <li>
+          <h3>Add a new command</h3>
+          <p>Open <strong>Events</strong> and drag <strong>when the command … is used</strong> into an empty spot. Click its white box and type <code>hello</code>. People will now type <code>!hello</code>.</p>
+        </li>
+        <li>
+          <h3>Add a reply under it</h3>
+          <p>Open <strong>Messages</strong>, drag <strong>reply with</strong> and drop it just under the yellow block. When the shapes line up it clicks into place.</p>
+          {{ shot("editor-palette", "The Messages family opened next to the workspace, showing purple blocks like reply with and send embed.", "Pressing a family opens its blocks. Drag the one you want out.", width=930, height=800, class="shot-narrow") }}
+        </li>
+        <li>
+          <h3>Greet people by name</h3>
+          <p>Open <strong>Operators</strong> and drag <strong>join</strong> into the white box of <em>reply with</em>. Type <code>Hello, </code> (with a space after the comma) in the first box. Then open <strong>Message info</strong> and drag <strong>author name</strong> into the second box.</p>
+          <div class="stack docs-stack">
+            {{ example_block({"hat": True, "parts": ["when the command", ("field", "hello"), "is used"]}, "events") }}
+            <div class="blk blk--messages"><span>reply with</span><span class="blk blk--operators blk--round"><span>join</span><span class="blk-field">Hello, </span><span class="blk blk--info blk--round"><span>author name</span></span></span></div>
+          </div>
+          <p class="muted">In the editor the <em>join</em> and <em>author name</em> blocks sit inside the white box, like round pieces in a hole.</p>
+        </li>
+        <li>
+          <h3>Check the Python</h3>
+          <p>Look at the Python tab. Your two blocks became a few lines of real code. This is the file your bot runs, and reading it is a great way to learn.</p>
+          {{ shot("editor-python", "The editor with the Python tab showing the code that the blocks write.", "The Python tab updates as you build.") }}
+        </li>
+      </ol>
+      {% call callout("tip", "A yellow warning at the top?") %}It means a block is in the wrong place or missing a piece, for example a block that needs a message but isn't under an event. Open the <strong>Problems</strong> tab. It says what is wrong and which block it is.{% endcall %}
+    </section>
+
+    {#- ============================================================ 5. run -#}
+    <section class="doc" id="run" aria-labelledby="h-run">
+      <p class="part">Step 5</p>
+      <h2 id="h-run">Run your bot</h2>
+      <p>Make sure you invited the bot to your community (see <a href="#create-bot">step 1</a>). Then:</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Press <em>Run</em></h3>
+          <p>The status next to <em>Console</em> says <em>Starting</em> and then <strong>Running</strong> (<span class="badge">1</span>). Your bot shows as online in your community. In the console you see <em>Bot is online!</em> (<span class="badge">3</span>).</p>
+          {{ shot("running", "The editor while the bot runs: the console says Running and lists the bot's start-up messages.", "A running bot. The console shows what it is doing.") }}
+        </li>
+        <li>
+          <h3>Try it in Fluxer</h3>
+          <p>Open a channel the bot can see and type <code>!ping</code>. The bot answers <em>Pong!</em>. Type <code>!hello</code> if you built the second command.</p>
+        </li>
+        <li>
+          <h3>Change something? Press <em>Restart</em></h3>
+          <p>A running bot keeps the blocks it started with. After you change the blocks, press <strong>Restart</strong> to stop it and start it again with the new ones.</p>
+        </li>
+        <li>
+          <h3>Press <em>Stop</em> when you are done</h3>
+          <p>The bot goes offline (<span class="badge">2</span>).</p>
+        </li>
+      </ol>
+
+      <h3>What the console shows</h3>
+      <p>The console is for <em>you</em>, not for chat. It shows the lines your <strong>write to the console</strong> blocks print, plus what the bot itself reports: that it connected, and any warnings and errors. Replies in Fluxer don't appear in it. Use the <em>All, Warnings, Errors</em> buttons to filter and the bin to clear it.</p>
+
+      <h3>How long does it stay online?</h3>
+      <ul>
+        <li>The runner stops a bot after about <strong>{{ run_hours }} hours</strong>, so everyone gets a turn. Press <strong>Run</strong> again to go on.</li>
+        <li>You can run a couple of bots at the same time. If the runner is full, it says so. Try again in a little while.</li>
+        <li>If the runner restarts, running bots stop and don't come back by themselves. The editor says <em>The runner no longer has this run</em>. Press Run again.</li>
+      </ul>
+      {% call callout("tip", "Need a bot that is always online?") %}Download <code>main.py</code> and run it on your own computer or a server, where nothing stops it. The next two sections show how.{% endcall %}
+    </section>
+
+    {#- ============================================================ 6. download -#}
+    <section class="doc" id="download" aria-labelledby="h-download">
+      <p class="part">Step 6</p>
+      <h2 id="h-download">Download main.py</h2>
+      <p>Your bot is not stuck on this site. The code your blocks write is yours to keep.</p>
+
+      <ol class="steps">
+        <li>
+          <h3>Open <em>Get code</em></h3>
+          <p>It is the button at the top right of the editor.</p>
+        </li>
+        <li>
+          <h3>Pick what you want</h3>
+          <p><strong>Python file</strong> (<span class="badge">1</span>) downloads <code>main.py</code> on its own. <strong>Folder with your files</strong> (<span class="badge">2</span>) downloads a <code>.zip</code> with everything the bot needs to run.</p>
+          {{ shot("get-code", "The Get code menu open, with the options Python file main.py and Folder with your files .zip.", "The Get code menu.") }}
+        </li>
+      </ol>
+
+      <h3>What is in the zip</h3>
+      <ul class="files-list">
+        <li>{{ icon("file-code") }}<span><code>main.py</code> The bot.</span></li>
+        <li>{{ icon("file-text") }}<span><code>requirements.txt</code> What to install first (<code>pip install -r requirements.txt</code>).</span></li>
+        <li>{{ icon("file-text") }}<span><code>README.txt</code> Short instructions for running it.</span></li>
+        <li>{{ icon("folder-simple") }}<span><code>assets/</code> The pictures and data files your blocks use, if any.</span></li>
+      </ul>
+
+      <h3>This is what main.py looks like</h3>
+      <p>This is the code of a new bot. Yours will have more lines once you add blocks.</p>
+      {% call code("main.py") %}{{ sample_code }}{% endcall %}
+
+      <p>Read the last line: <code>bot.run(os.environ["FLUXER_TOKEN"])</code>. The file doesn't contain your token. It reads it from something called an <strong>environment variable</strong> named <code>FLUXER_TOKEN</code>, so you can share or upload <code>main.py</code> without leaking the token. You set that variable when you run the bot. The next section shows how.</p>
+      {% call callout("note", "Download greyed out?") %}The Problems tab lists what needs fixing first. We don't hand out code that wouldn't run.{% endcall %}
+    </section>
+
+    {#- ============================================================ 7. run yourself -#}
+    <section class="doc" id="run-yourself" aria-labelledby="h-yourself">
+      <p class="part">Step 7 (optional)</p>
+      <h2 id="h-yourself">Run main.py yourself</h2>
+      <p>Running it yourself means you decide when it starts and stops, and it can stay online as long as the machine does. You need a computer that has Python.</p>
+
+      <h3>On your computer</h3>
+      <ol class="steps">
+        <li>
+          <h3>Install Python</h3>
+          <p>Get Python 3.10 or newer from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">python.org/downloads</a>. On Windows, tick <em>Add python.exe to PATH</em> in the installer.</p>
+        </li>
+        <li>
+          <h3>Put the files in a folder</h3>
+          <p>Unzip the folder you downloaded, or make a new folder and put <code>main.py</code> in it.</p>
+        </li>
+        <li>
+          <h3>Open a terminal in that folder</h3>
+          <p>On Windows, open the folder, click the address bar, type <code>cmd</code> and press Enter. On macOS, right-click the folder and choose <em>New Terminal at Folder</em>. On Linux, open a terminal and <code>cd</code> into it.</p>
+        </li>
+        <li>
+          <h3>Install what the bot needs</h3>
+          {% call code("Terminal") %}pip install -r requirements.txt{% endcall %}
+          <p>If you only have <code>main.py</code>, run <code>pip install "fluxer.py&gt;=0.4.2,&lt;0.5"</code> instead. On macOS and Linux, use <code>pip3</code> if <code>pip</code> isn't found.</p>
+        </li>
+        <li>
+          <h3>Give it the token and start it</h3>
+          <p>Replace <code>paste your token here</code> with your bot's token, then run the line for your system:</p>
+          <div class="os-grid">
+            <div>
+              <p class="os-name">Windows (PowerShell)</p>
+              {% call code() %}$env:FLUXER_TOKEN="paste your token here"; python main.py{% endcall %}
+            </div>
+            <div>
+              <p class="os-name">Windows (Command Prompt)</p>
+              {% call code() %}set FLUXER_TOKEN=paste your token here
+python main.py{% endcall %}
+            </div>
+            <div>
+              <p class="os-name">macOS and Linux</p>
+              {% call code() %}FLUXER_TOKEN="paste your token here" python3 main.py{% endcall %}
+            </div>
+          </div>
+          <p>You should see the lines you set up, such as <em>Bot is online!</em>. Try <code>!ping</code> in Fluxer. To stop the bot, press <kbd>Ctrl</kbd> + <kbd>C</kbd>.</p>
+        </li>
+      </ol>
+      {% call callout("warn", "Never put the token inside main.py.") %}Keep it in the environment variable. Anyone who sees the token can control your bot. If it leaks, press Regenerate on Fluxer and replace the token on <a href="/bots">My bots</a>.{% endcall %}
+
+      <h3>Keep it online all the time</h3>
+      <p>A bot is only online while <code>main.py</code> is running. Close the terminal or switch off the computer, and it goes offline. To keep it up day and night, run it on a machine that is always on, such as a small server (a VPS), a home server or a spare computer. Pick the way you like best:</p>
+
+      <details class="how">
+        <summary>{{ icon("package") }}<span>With Docker</span>{{ icon("caret-down") }}</summary>
+        <div class="how-body">
+          <p>Put a file called <code>Dockerfile</code> next to <code>main.py</code> and <code>requirements.txt</code>:</p>
+          {% call code("Dockerfile") %}FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "main.py"]{% endcall %}
+          <p>Build it once, then start it so that it comes back after a restart:</p>
+          {% call code("Terminal") %}docker build -t my-fluxer-bot .
+docker run -d --name my-fluxer-bot --restart unless-stopped -e FLUXER_TOKEN="paste your token here" my-fluxer-bot{% endcall %}
+          <p>See what the bot says with <code>docker logs -f my-fluxer-bot</code>. Many hosting panels that run containers have a box for <em>environment variables</em>. Add <code>FLUXER_TOKEN</code> there.</p>
+        </div>
+      </details>
+
+      <details class="how">
+        <summary>{{ icon("linux-logo") }}<span>As a service on Linux (systemd)</span>{{ icon("caret-down") }}</summary>
+        <div class="how-body">
+          <p>Store the token in a private file, so it isn't in the service file:</p>
+          {% call code("Terminal") %}echo 'FLUXER_TOKEN=paste your token here' &gt; ~/mybot/.env
+chmod 600 ~/mybot/.env{% endcall %}
+          <p>Then create <code>/etc/systemd/system/mybot.service</code>:</p>
+          {% call code("mybot.service") %}[Unit]
+Description=My Fluxer bot
+After=network-online.target
+
+[Service]
+WorkingDirectory=/home/you/mybot
+EnvironmentFile=/home/you/mybot/.env
+ExecStart=/usr/bin/python3 main.py
+Restart=always
+User=you
+
+[Install]
+WantedBy=multi-user.target{% endcall %}
+          <p>Start it, and make it start with the machine:</p>
+          {% call code("Terminal") %}sudo systemctl enable --now mybot
+sudo journalctl -u mybot -f{% endcall %}
+        </div>
+      </details>
+
+      <details class="how">
+        <summary>{{ icon("cloud") }}<span>On a hosting service that runs Python</span>{{ icon("caret-down") }}</summary>
+        <div class="how-body">
+          <p>Most services that run Python programs (or containers) work the same way:</p>
+          <ol>
+            <li>Upload <code>main.py</code> and <code>requirements.txt</code>.</li>
+            <li>Set the start command to <code>python main.py</code>.</li>
+            <li>Add an environment variable called <code>FLUXER_TOKEN</code> with your token as its value.</li>
+            <li>Start it, and read its logs to see <em>Bot is online!</em>.</li>
+          </ol>
+          <p>Choose a service that keeps the program running all the time. Some free plans put programs to sleep, which would take your bot offline.</p>
+        </div>
+      </details>
+
+      {% call callout("note", "Edited main.py by hand?") %}You can, and it runs fine. But changes you make in the file don't come back into the blocks. If you keep building with blocks, download a fresh copy each time.{% endcall %}
+    </section>
+
+    {#- ============================================================ blocks -#}
+    <section class="doc" id="blocks" aria-labelledby="h-blocks">
+      <p class="part">Reference</p>
+      <h2 id="h-blocks">Blocks</h2>
+      <p>There are <strong>{{ block_total }} blocks in {{ families | length }} families</strong>. A family is a group of blocks that do a similar job, and it has its own colour so you can find your way around.</p>
+
+      <h3>How blocks fit together</h3>
+      <div class="shapes">
+        <div class="shape">
+          <div class="stack docs-stack">
+            {{ example_block({"hat": True, "parts": ["when the command", ("field", "ping"), "is used"]}, "events") }}
+            {{ example_block({"parts": ["reply with", ("field", "Pong!")]}, "messages") }}
+          </div>
+          <h4>Hat and stack blocks</h4>
+          <p>Yellow event blocks have a curved top: they <em>start</em> a script. Other blocks have a notch on top and a bump underneath, so they stack under each other and run from top to bottom.</p>
+        </div>
+        <div class="shape">
+          <div class="stack docs-stack">
+            {{ example_block({"parts": ["reply with", ("field", "Hello, ")]}, "messages") }}
+          </div>
+          <div class="docs-round">{{ example_block({"round": True, "parts": ["author name"]}, "info") }}</div>
+          <h4>Round blocks and white boxes</h4>
+          <p>A white box is a place for a value: type text into it, or drop a round block on top. Round blocks hold information (like <em>author name</em>) or do a calculation.</p>
+        </div>
+        <div class="shape">
+          <div class="stack docs-stack">
+            {{ example_block({"parts": ["send embed", ("field", "Rules"), "with text", ("field", "Be kind."), "color", ("menu", "blue")]}, "messages") }}
+          </div>
+          <h4>Dropdowns</h4>
+          <p>A dark pill with a small arrow is a dropdown. Click it and pick an option, such as a colour or a status.</p>
+        </div>
+      </div>
+
+      <p class="muted">Every block below is shown as it looks in the editor. Use the search box in the side menu to find one, for example <em>role</em> or <em>embed</em>.</p>
+    </section>
+
+    <div id="blocks-reference">
+      {% for f in families %}
+      <section class="doc family" id="blocks-{{ f.id }}" data-family="{{ f.id }}" aria-labelledby="h-{{ f.id }}" style="--fam: var(--cat-{{ f.id }})">
+        <h2 id="h-{{ f.id }}"><span class="fam-icon">{{ icon(f.icon) }}</span>{{ f.name }} <span class="fam-count">{{ f.blocks | length }} blocks</span></h2>
+        <p class="lead-small">{{ f.blurb }}</p>
+        <p>{{ f.intro | safe }}</p>
+        <p class="try"><strong>Try it:</strong> {{ f.try | safe }}</p>
+
+        <ul class="block-list">
+          {% for b in f.blocks %}
+          <li class="block-item" data-words="{{ b.words | lower }} {{ b.tooltip | lower }}">
+            <div class="block-draw">{{ example_block(b.spec, f.id) }}</div>
+            <div class="block-say">
+              <p>{{ b.tooltip }}</p>
+              {% if b.where %}<p class="where">{{ icon("map-pin") }}Use it in: {{ b.where }}</p>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endfor %}
+      <p class="no-results" id="docs-no-results" hidden>No block matches that. Try a shorter word.</p>
+    </div>
+
+    {#- ============================================================ more -#}
+    <section class="doc" id="files" aria-labelledby="h-files">
+      <p class="part">More</p>
+      <h2 id="h-files">Files and images</h2>
+      <p>Open the <strong>Files</strong> tab to give your bot pictures, text and data. Press <strong>Add files</strong> or drop them onto the editor.</p>
+      <ul>
+        <li>Accepted: <strong>{{ limits.accepted }}</strong>.</li>
+        <li>Up to <strong>{{ limits.max_files }} files</strong> per bot, <strong>{{ (limits.max_file_bytes / 1048576) | round(1) | string | replace(".0", "") }} MB</strong> each and <strong>{{ (limits.max_total_bytes / 1048576) | round(1) | string | replace(".0", "") }} MB</strong> in total.</li>
+        <li>After you upload a file, its name appears in the dropdown of blocks that use files, such as <strong>reply with image</strong> and the JSON blocks. The Files tab shows which files your blocks use.</li>
+        <li>Files come with you in the <code>.zip</code>, inside the <code>assets</code> folder.</li>
+      </ul>
+
+      <h2 class="h-sub" id="manage">Manage your bots</h2>
+      <p>Open <a href="/bots">My bots</a> to see all your bots. <strong>Open blocks</strong> (<span class="badge">1</span>) takes you to the editor. The three dots (<span class="badge">2</span>) open a menu:</p>
+      {{ shot("my-bots", "The My bots page with a bot listed and its menu open, showing Rename, Replace token and Remove bot.", "The menu of a bot on My bots.", width=1216, height=481) }}
+      <ul>
+        <li><strong>Rename</strong> changes the name you see here. The bot's name on Fluxer stays the same.</li>
+        <li><strong>Replace token</strong> is for when you pressed Regenerate on Fluxer. The old token stops working at that moment, so paste the new one here and the bot works again.</li>
+        <li><strong>Remove bot</strong> deletes it from {{ app_name }} with its blocks, files and saved token. Your bot on Fluxer is not touched.</li>
+        <li><strong>Delete my data</strong> at the bottom of the page removes your account and everything in it. It stops your running bots first.</li>
+      </ul>
+    </section>
+
+    {#- ============================================================ troubleshooting -#}
+    <section class="doc" id="troubleshooting" aria-labelledby="h-trouble">
+      <p class="part">Help</p>
+      <h2 id="h-trouble">Troubleshooting</h2>
+      <p>Something not working? Find what you see below.</p>
+
+      <details class="qa">
+        <summary>Check token says the token isn't valid</summary>
+        <div class="qa-body">
+          <ul>
+            <li>Copy the <strong>whole</strong> token, including the number, the dot and everything after it. No spaces at the start or the end.</li>
+            <li>If you pressed Regenerate since you copied it, the old token is dead. Copy the newest one.</li>
+            <li>If you aren't sure, press Regenerate on Fluxer again and paste the fresh token.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>It says the bot doesn't belong to my account</summary>
+        <div class="qa-body">
+          <p>You can only add a bot that your Fluxer account owns. Log in here with the same Fluxer account that created the application. Check the name at the top right of the page.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>The bot is running but doesn't answer in Fluxer</summary>
+        <div class="qa-body">
+          <ul>
+            <li><strong>Did you invite it?</strong> The bot has to be a member of the community. See the invite link in <a href="#create-bot">step 1</a>.</li>
+            <li><strong>Can it see the channel?</strong> The bot needs to see the channel and be allowed to send messages in it. Check the channel's permissions.</li>
+            <li><strong>Typed it right?</strong> Start with the prefix. If the prefix is <code>!</code> and the block says <code>ping</code>, people type <code>!ping</code>. Don't type the prefix inside the block's box.</li>
+            <li><strong>Did you press Restart?</strong> A running bot doesn't pick up new blocks until you do.</li>
+            <li>Look at the <strong>console</strong>. Errors show up there in red.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>The Run button doesn't work, or says that running bots isn't switched on</summary>
+        <div class="qa-body">
+          <p>The runner, the server that keeps bots online, isn't reachable right now. Try again in a few minutes. In the meantime you can <a href="#download">download main.py</a> and <a href="#run-yourself">run it yourself</a>, which doesn't need the runner at all.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>My bot went offline by itself</summary>
+        <div class="qa-body">
+          <ul>
+            <li>The runner stops a bot after about {{ run_hours }} hours. Press Run again.</li>
+            <li>If the runner was restarted, every running bot stops. The editor says <em>The runner no longer has this run</em>. Press Run.</li>
+            <li>If you replaced or regenerated the token, the old one stops working at once. Replace it on <a href="/bots">My bots</a>.</li>
+            <li>For a bot that must never go offline, <a href="#run-yourself">run it yourself</a>.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="qa" id="trouble-roles">
+        <summary>Roles, kick, ban and timeout blocks don't work</summary>
+        <div class="qa-body">
+          <ul>
+            <li>The bot needs the matching permission in your community: <em>Manage Roles</em> to give or take roles, <em>Kick Members</em>, <em>Ban Members</em>, or the timeout permission.</li>
+            <li>A bot can only manage roles that are <strong>lower</strong> than its own highest role. In the community's role settings, drag the bot's role above the ones it should give.</li>
+            <li>A bot can't act on the owner of the community, or on someone whose highest role is above its own.</li>
+            <li>The blocks print <em>Moderation failed</em> in the console, with the reason, instead of crashing. Read that line.</li>
+            <li>Think about who can type the command. A command that bans people is dangerous if anyone can use it. Add an <strong>if</strong> block that checks for a staff role first.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>Blocks won't snap together</summary>
+        <div class="qa-body">
+          <ul>
+            <li>Yellow event blocks have no notch on top, so nothing can go above them. Other blocks go <strong>under</strong> them.</li>
+            <li>Round blocks go into white boxes, not under other blocks.</li>
+            <li>Move the block until a preview of where it will click appears, then let go.</li>
+            <li>Dropped one in the wrong place? Undo with <kbd>Ctrl</kbd> + <kbd>Z</kbd>.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>The Python file won't download</summary>
+        <div class="qa-body">
+          <p>Open the <strong>Problems</strong> tab (or the yellow pill at the top). Fix each item and the download works again.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>The login says "Your login session expired or didn't match"</summary>
+        <div class="qa-body">
+          <p>Your browser blocked the cookie that logging in needs, or you opened the site at a different address than the one you started on. Allow cookies for this site, open it at <strong>{{ site|replace("https://", "")|replace("http://", "") }}</strong>, and log in again.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>My token was leaked</summary>
+        <div class="qa-body">
+          <p>Don't panic. Press <strong>Regenerate</strong> next to the bot token on Fluxer. The leaked token stops working at once. Then paste the new token with <strong>Replace token</strong> on <a href="/bots">My bots</a>, and update it wherever else you run the bot.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>python isn't recognised, or pip isn't found</summary>
+        <div class="qa-body">
+          <p>Python isn't installed, or isn't on your PATH. Reinstall it from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">python.org</a> and tick <em>Add python.exe to PATH</em>. On Windows you can also try <code>py main.py</code> and <code>py -m pip install -r requirements.txt</code>. On macOS and Linux use <code>python3</code> and <code>pip3</code>.</p>
+        </div>
+      </details>
+
+      <details class="qa">
+        <summary>KeyError: 'FLUXER_TOKEN'</summary>
+        <div class="qa-body">
+          <p>You started <code>main.py</code> without setting the token first. Set <code>FLUXER_TOKEN</code> in the same terminal window, right before starting the bot, as shown in <a href="#run-yourself">Run main.py yourself</a>. A new terminal window forgets it.</p>
+        </div>
+      </details>
+    </section>
+
+    {#- ============================================================ faq -#}
+    <section class="doc" id="faq" aria-labelledby="h-faq">
+      <h2 id="h-faq">Questions</h2>
+
+      <details class="qa">
+        <summary>Do I need to know how to code?</summary>
+        <div class="qa-body"><p>No. Blocks do the coding for you. And if you want to learn, the Python tab shows the real code that each block writes.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Is my token safe?</summary>
+        <div class="qa-body"><p>It is encrypted before it is stored, it is never sent back to your browser, and no block can read it. When your bot runs, it is sent over HTTPS to the runner and kept in memory only. The <a href="/privacy">privacy page</a> lists everything we keep.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Can I use the same bot on more than one community?</summary>
+        <div class="qa-body"><p>Yes. Invite it to each community with the invite link. One bot runs one set of blocks everywhere it has been invited.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Will my variables and lists be remembered?</summary>
+        <div class="qa-body"><p>Only while the bot runs. When it stops or restarts, they start from their first value again. For anything that must survive a restart, keep it in a JSON file you read with the JSON blocks.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Can I make a block that isn't in the list?</summary>
+        <div class="qa-body"><p>Not yet. The blocks are fixed on purpose, which is what lets us check that every bot is safe to run. If you wish a block existed, tell us{% if community_url %} in the <a href="{{ community_url }}" target="_blank" rel="noopener noreferrer">community server</a>{% endif %}.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Where do I ask for help?</summary>
+        <div class="qa-body"><p>{% if community_url %}Join the <a href="{{ community_url }}" target="_blank" rel="noopener noreferrer">community server</a> on Fluxer and ask there. Say what you were doing and what you saw, and add a screenshot with the token hidden.{% else %}Say what you were doing and what you saw, and add a screenshot with the token hidden.{% endif %}</p></div>
+      </details>
+    </section>
+
+    <div class="docs-end">
+      <a class="btn btn-primary btn-lg" href="/bots/new">{{ icon("plus") }}<span>Add your bot</span></a>
+      <a class="btn btn-lg" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+    </div>
+  </article>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{{ static('js/docs.js') }}" defer></script>{% endblock %}

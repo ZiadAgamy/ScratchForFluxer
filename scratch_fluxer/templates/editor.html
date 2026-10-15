@@ -55,6 +55,7 @@
     <div class="menu-panel">
       <div class="menu-head">Logged in as <strong>{{ user.display_name }}</strong>@{{ user.username }}</div>
       <a class="menu-item" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+      <a class="menu-item" href="/docs" target="_blank" rel="noopener">{{ icon("book-open-text") }}<span>Docs</span></a>
       <a class="menu-item" href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ icon("arrow-square-out") }}<span>Open Fluxer</span></a>
       <form method="post" action="/auth/logout">
         <input type="hidden" name="csrf_token" value="{{ user.csrf }}">
