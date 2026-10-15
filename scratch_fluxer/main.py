@@ -98,7 +98,8 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
-        docs_url=None if settings.is_production else "/docs",
+        # /docs is the guide for people; FastAPI's own API explorer lives at /api-docs and only exists off production.
+        docs_url=None if settings.is_production else "/api-docs",
         redoc_url=None,
         openapi_url=None if settings.is_production else "/openapi.json",
         lifespan=lifespan,
