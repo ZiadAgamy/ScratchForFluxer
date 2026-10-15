@@ -521,6 +521,24 @@ samp {
   margin-inline-start: auto;
 }
 
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.header-link:hover,
+.header-link.is-current {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
 /* Account menu (a <details> element: works without JavaScript). */
 .menu {
   position: relative;
@@ -621,6 +639,10 @@ samp {
 
 @media (max-width: 26rem) {
   .brand-name {
+    display: none;
+  }
+
+  .header-link span {
     display: none;
   }
 }
