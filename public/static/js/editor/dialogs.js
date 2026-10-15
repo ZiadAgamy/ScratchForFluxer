@@ -200,5 +200,5 @@
     }, undefined);
   }
 
-  E.dialogs = { prompt: prompt, confirm: confirm, alert: alert, choose: choose, show: show };
+  E.dialogs = { prompt: prompt, confirm: confirm, alert: alert, choose: choose, show: show, open: open };
 })();

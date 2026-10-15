@@ -215,6 +215,8 @@
   // ------------------------------------------------------------------------------------------------ registering
   function defineBlocks() {
     B.fieldRegistry.register("field_sff_asset", FieldAsset);
+    E.embeds.configure(payload.embed);
+    E.embeds.register();
     B.defineBlocksWithJsonArray(payload.blocks);
 
     /* A "hat" has a curved top and nothing can snap on above it. Blockly ignores a "hat" key in the JSON, so it is set

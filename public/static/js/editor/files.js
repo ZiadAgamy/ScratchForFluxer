@@ -351,6 +351,7 @@
     set: setFiles,
     names: names,
     find: find,
+    url: url,
     list: function () {
       return state.files.slice();
     },
