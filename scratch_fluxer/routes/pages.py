@@ -63,7 +63,6 @@ async def docs(request: Request) -> Response:
             "limits": store.limits(settings),
             "sample_code": compile_workspace(default_workspace()).code.rstrip(),
             "max_bots": settings.max_bots_per_user,
-            "run_hours": max(1, settings.runner_max_run_seconds // 3600),
             "site": get_settings().public_base_url or str(request.base_url).rstrip("/"),
             **_public(request, "/docs"),
         },
