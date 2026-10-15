@@ -303,7 +303,7 @@
 
       <h3>How long does it stay online?</h3>
       <ul>
-        <li>The runner stops a bot after about <strong>{{ run_hours }} hours</strong>, so everyone gets a turn. Press <strong>Run</strong> again to go on.</li>
+        <li>There is no time limit. A bot keeps running until you press <strong>Stop</strong>.</li>
         <li>You can run a couple of bots at the same time. If the runner is full, it says so. Try again in a little while.</li>
         <li>If the runner restarts, running bots stop and don't come back by themselves. The editor says <em>The runner no longer has this run</em>. Press Run again.</li>
       </ul>
@@ -586,7 +586,6 @@ sudo journalctl -u mybot -f{% endcall %}
         <summary>My bot went offline by itself</summary>
         <div class="qa-body">
           <ul>
-            <li>The runner stops a bot after about {{ run_hours }} hours. Press Run again.</li>
             <li>If the runner was restarted, every running bot stops. The editor says <em>The runner no longer has this run</em>. Press Run.</li>
             <li>If you replaced or regenerated the token, the old one stops working at once. Replace it on <a href="/bots">My bots</a>.</li>
             <li>For a bot that must never go offline, <a href="#run-yourself">run it yourself</a>.</li>
