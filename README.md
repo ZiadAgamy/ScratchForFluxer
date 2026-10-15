@@ -215,6 +215,6 @@ A block is defined once in `catalogue.py`, and the compiler, the editor, the lan
 
 ## License
 
-No license has been chosen yet. Add a `LICENSE` file (for example MIT) before others copy or contribute. Third-party licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE): you can use, copy, change and share it, as long as the license text stays with it. Third-party licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Fluxer and its name belong to their owners.
