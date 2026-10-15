@@ -31,6 +31,9 @@ from mock_fluxer_server import MockFluxer  # noqa: E402
 
 VIEW = {"width": 1360, "height": 800}
 
+#: Name some pictures on the command line to take only those (``python scripts/make_docs_images.py embed-popup``).
+ONLY = set(sys.argv[1:])
+
 #: Numbered badges drawn over a screenshot: ``(css selector, number, where on that element)``.
 BADGE_JS = """
 (items) => {
@@ -112,6 +115,8 @@ def main() -> None:
             break
 
     def shot(page, name: str, clip=None, full: bool = False, only: str | None = None) -> None:
+        if ONLY and name not in ONLY:
+            return
         raw = TMP / f"{name}.png"
         if only:  # just that part of the page, so the header and footer don't take up the picture
             page.locator(only).screenshot(path=str(raw))
@@ -267,6 +272,59 @@ def main() -> None:
         small.wait_for_timeout(900)
         shot(small, "editor-phone")
         phone.close()
+
+        # ---- the Card options window of an embed block
+        from blocks import block as make
+        from blocks import command as make_command
+        from blocks import workspace as make_workspace
+
+        card = make_command(
+            "rules",
+            make(
+                "sff_reply_embed",
+                id="card1",
+                inputs={"TITLE": "Server rules", "TEXT": "Be kind to everyone.\nRead the rules before you chat."},
+            ),
+            x=40,
+            y=40,
+        )
+        cleaned_card = workspace_lib.clean_workspace(make_workspace(card)).workspace
+
+        def store_card(session):
+            row = session.query(Bot).filter(Bot.id == bot_id).one()
+            row.workspace_json = json.dumps(cleaned_card)
+
+        _call_with_session(store_card, (), {})
+        tall = browser.new_context(viewport={"width": 1180, "height": 900})
+        tall.add_cookies([{"name": deps.SESSION_COOKIE, "value": cookie, "url": base}])
+        popup = tall.new_page()
+        popup.goto(f"{base}/bots/{bot_id}/edit")
+        popup.wait_for_selector("#ed-loading", state="hidden", timeout=20000)
+        popup.wait_for_function("() => window.sffEditor.blocks.workspace().getAllBlocks(false).length > 0")
+        popup.evaluate("() => window.sffEditor.blocks.workspace().getBlockById('card1').getField('OPTIONS').showEditor_()")
+        window = popup.locator("dialog.dialog-embed")
+        window.wait_for(state="visible")
+        window.locator(".embed-swatch[data-name='orange']").click()
+        window.locator("summary", has_text="Link, pictures").click()
+        window.locator("input[id$='-url']").fill("https://example.com/rules")
+        window.locator("summary", has_text="Author and footer").click()
+        window.locator("input[id$='-author']").fill("The team")
+        window.locator("input[id$='-footer']").fill("Thanks for reading")
+        window.locator("input[id$='-time']").check()
+        window.locator("summary", has_text="Author and footer").click()  # fold both away again so the picture stays short
+        window.locator("summary", has_text="Link, pictures").click()
+        window.locator(".dialog-body").evaluate("(node) => { node.scrollTop = 0; }")
+        popup.wait_for_timeout(200)
+        page_shot = TMP / "embed-popup-raw.png"
+        window.screenshot(path=str(page_shot))
+        if not ONLY or "embed-popup" in ONLY:
+            from PIL import Image
+
+            image = Image.open(page_shot).convert("RGB")
+            image = image.quantize(colors=192, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+            image.save(OUT / "embed-popup.png", optimize=True)
+            print("wrote embed-popup", image.size, (OUT / "embed-popup.png").stat().st_size // 1024, "KB")
+        tall.close()
 
         browser.close()
     server.should_exit = True
