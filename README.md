@@ -1,4 +1,4 @@
-# Scratch For Fluxer
+# [Scratch For Fluxer](https://scratch.fluxer.my)
 
 Learn how the Fluxer bot API works by snapping blocks together. Drag blocks the way you would in Scratch, read the real
 Python they write (it runs on [fluxer.py](https://github.com/akarealemil/fluxer.py)), then run your bot and watch its console.
