@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SHAPES = {"hat", "statement", "cap", "value", "boolean", "literal", "config"}
 RETURNS = {"text", "number", "boolean", "list", "any"}
 NEEDS = {"message", "command", "member", "reaction"}
-PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "statements")
+PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "embed", "statements")
 
 
 def parts(spec):

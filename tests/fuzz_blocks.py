@@ -53,7 +53,7 @@ from blocks import (
 from scratch_fluxer import catalogue, codecheck
 from scratch_fluxer.compiler import MAX_NUMBER, CompileResult, clean_text
 
-PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "statements")
+PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "embed", "statements")
 PLAIN_VARIABLE, LIST_VARIABLE = "score", "fruits"
 VARIABLES = (PLAIN_VARIABLE, (LIST_VARIABLE, "List"))
 FILE_FOR_KIND = {"image": "cat.png", "json": "data.json", "text": "notes.txt"}

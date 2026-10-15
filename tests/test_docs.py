@@ -109,7 +109,7 @@ class TestWhatItSays:
     def test_the_limits_are_the_real_ones(self, page, settings):
         assert f"{settings.max_bots_per_user} bots" in page
         assert f"{settings.max_assets_per_bot} files" in page
-        assert f"about <strong>{settings.runner_max_run_seconds // 3600} hours</strong>" in page
+        assert "There is no time limit" in page and "hours</strong>" not in page
 
     def test_nothing_secret_is_on_it(self, page, settings):
         assert settings.secret_key not in page and settings.fluxer_client_secret not in page
@@ -154,3 +154,14 @@ def test_the_api_explorer_moved_out_of_the_way(client):
     """FastAPI's own explorer used to sit at /docs. Off production it is at /api-docs, so the guide can have /docs."""
     assert client.get("/api-docs").status_code == 200
     assert "Build a Fluxer bot" not in client.get("/api-docs").text
+
+
+class TestCards:
+    def test_the_embed_pop_up_is_explained(self, page):
+        assert 'id="cards"' in page and "Card options" in page
+        assert "img/docs/embed-popup.png" in page.replace("\\", "/") or "embed-popup" in page
+
+    def test_the_picture_of_it_exists(self):
+        from pathlib import Path
+
+        assert (Path(__file__).resolve().parent.parent / "public" / "static" / "img" / "docs" / "embed-popup.png").exists()

@@ -12,7 +12,7 @@ import math
 from collections import Counter
 from typing import Any
 
-from scratch_fluxer import catalogue
+from scratch_fluxer import catalogue, embeds
 from scratch_fluxer.compiler import MAX_NUMBER, clean_text
 from scratch_fluxer.workspace import MAX_JSON_DEPTH, MAX_NODES, MAX_VARIABLES
 
@@ -191,6 +191,9 @@ class _Check:
                 limit = arg.get("maxLength", 80)
                 if not isinstance(value, str) or len(value) > limit or clean_text(value, limit) != value:
                     self.problem(f"{where}: bad text {value!r:.80}")
+            elif kind == "field_sff_embed":
+                if not isinstance(value, str) or embeds.clean(value, files=arg["files"]) != value:
+                    self.problem(f"{where}: embed options that are not in their plain form: {value!r:.80}")
             elif kind == "field_number":
                 ok = isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
                 if not ok or abs(value) > MAX_NUMBER or (isinstance(value, float) and value.is_integer()):
