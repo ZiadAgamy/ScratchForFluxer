@@ -235,14 +235,15 @@ class TestConfigGuard:
         with TestClient(self.broken_app(monkeypatch)) as c:
             assert c.get("/healthz").json()["ok"] is True
 
-    def test_docs_are_hidden_in_production(self, monkeypatch):
+    def test_api_explorer_is_hidden_in_production(self, monkeypatch):
         monkeypatch.setenv("APP_ENV", "production")
         config.reset_settings_cache()
         from scratch_fluxer.main import create_app
 
         with TestClient(create_app()) as c:
-            assert c.get("/docs").status_code == 404
+            assert c.get("/api-docs").status_code == 404
             assert c.get("/openapi.json").status_code == 404
+            assert c.get("/docs").status_code == 200  # the guide for people is public
 
     def test_hsts_is_sent_in_production(self, monkeypatch):
         monkeypatch.setenv("APP_ENV", "production")
