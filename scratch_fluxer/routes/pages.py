@@ -7,8 +7,8 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
-from .. import __version__
-from ..compiler import RESERVED_NAMES
+from .. import __version__, guide, store
+from ..compiler import RESERVED_NAMES, compile_workspace, default_workspace
 from ..config import get_settings
 from ..content import CATEGORIES, DEMO, HOW_IT_WORKS, SAFETY
 from ..deps import current_user, render
@@ -43,6 +43,29 @@ async def landing(request: Request) -> Response:
             "demo": DEMO,
             "reserved": sorted(RESERVED_NAMES),
             **_public(request, "/"),
+        },
+    )
+
+
+@router.get("/docs", include_in_schema=False)
+async def docs(request: Request) -> Response:
+    """The guide: from creating a bot on Fluxer to running main.py on your own machine."""
+    await current_user(request)
+    settings = get_settings()
+    families = guide.families()
+    return render(
+        request,
+        "docs.html",
+        {
+            "page": "docs",
+            "families": families,
+            "block_total": sum(len(family["blocks"]) for family in families),
+            "limits": store.limits(settings),
+            "sample_code": compile_workspace(default_workspace()).code.rstrip(),
+            "max_bots": settings.max_bots_per_user,
+            "run_hours": max(1, settings.runner_max_run_seconds // 3600),
+            "site": get_settings().public_base_url or str(request.base_url).rstrip("/"),
+            **_public(request, "/docs"),
         },
     )
 
