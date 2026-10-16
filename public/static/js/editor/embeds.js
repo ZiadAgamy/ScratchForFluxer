@@ -335,7 +335,23 @@
       // ---- colour
       var swatches = el("div", { class: "embed-swatches", role: "radiogroup", "aria-label": "Colour" });
       var hexInput = el("input", { class: "input embed-hex", id: uid + "hex", type: "text", maxlength: "7", value: "", placeholder: "#176dff", autocomplete: "off", spellcheck: "false", "aria-label": "Custom colour, like #176dff" });
-      var picker = el("input", { class: "embed-picker", id: uid + "picker", type: "color", "aria-label": "Pick any colour", value: colorValue(state.options.color) });
+      var cp = E.colorPicker.create({
+        value: colorValue(state.options.color),
+        onInput: function (hex) {
+          chooseColor(hex.toLowerCase());
+        },
+      });
+      cp.node.id = uid + "cp";
+      cp.node.hidden = true;
+      var picker = el("button", { class: "embed-picker", id: uid + "picker", type: "button", "aria-expanded": "false", "aria-controls": uid + "cp", "aria-label": "Open the colour picker", title: "Open the colour picker" });
+      picker.addEventListener("click", function () {
+        cp.node.hidden = !cp.node.hidden;
+        if (!cp.node.hidden) {
+          cp.refresh();
+          if (cp.node.scrollIntoView) cp.node.scrollIntoView({ block: "center", behavior: "instant" }); /* the footer buttons must not hide it */
+        }
+        picker.setAttribute("aria-expanded", cp.node.hidden ? "false" : "true");
+      });
       var colorError = el("span", { class: "field-error", role: "alert", hidden: true });
       errors.color = false;
 
@@ -347,7 +363,8 @@
         });
         var custom = isHex(state.options.color);
         hexInput.value = custom ? state.options.color : "";
-        picker.value = colorValue(state.options.color);
+        picker.style.setProperty("--swatch", colorValue(state.options.color));
+        cp.set(colorValue(state.options.color));
       }
 
       function chooseColor(name) {
@@ -366,9 +383,6 @@
         });
         swatches.appendChild(button);
       });
-      picker.addEventListener("input", function () {
-        chooseColor(picker.value.toLowerCase());
-      });
       hexInput.addEventListener("input", function () {
         var value = hexInput.value.trim();
         if (!value) {
@@ -386,7 +400,8 @@
             button.setAttribute("aria-checked", "false");
             button.classList.remove("is-on");
           });
-          picker.value = value;
+          picker.style.setProperty("--swatch", value);
+          cp.set(value);
           redraw();
         } else {
           colorError.textContent = "A colour looks like #176dff: a # and six letters or digits (0-9, a-f).";
@@ -399,6 +414,7 @@
         el("span", { class: "label-like", text: "Colour of the edge" }),
         swatches,
         el("div", { class: "embed-custom" }, [picker, el("label", { class: "embed-custom-label", for: uid + "hex", text: "or any colour" }), hexInput]),
+        cp.node,
         colorError,
       ]);
 
