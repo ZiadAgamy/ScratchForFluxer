@@ -13,7 +13,7 @@ Drag blocks like in Scratch, read the real Python they write, then run your bot 
 
 ## What it is
 
-- A **block editor** ([Blockly](https://developers.google.com/blockly)) with 100+ blocks in 9 families: Events, Bot, Messages, Message info, Control, Operators, Variables, Lists, and JSON and files.
+- A **block editor** ([Blockly](https://developers.google.com/blockly)) with 110+ blocks in 11 families: Events, Bot, Messages, Message info, Channels and roles, Threads and forums, Control, Operators, Variables, Lists, and JSON and files.
 - Every block writes real [fluxer.py](https://github.com/akarealemil/fluxer.py) code. You can read it, copy it, or download `main.py` and run it anywhere.
 - **Log in with Fluxer**, add your bot token, press **Run**, and watch the console.
 - A beginner guide at `/docs`, with screenshots and a reference of every block.
