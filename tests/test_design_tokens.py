@@ -57,10 +57,22 @@ def test_the_accent_is_the_logo_blue():
     assert all(abs(a - b) <= 2 for a, b in zip(solid, brand, strict=True))
 
 
-def test_all_nine_block_categories_exist():
+def test_all_eleven_block_categories_exist():
     assert sorted(CATEGORIES) == sorted(
         f"--cat-{n}"
-        for n in ("events", "bot", "messages", "info", "control", "operators", "variables", "lists", "data")
+        for n in (
+            "events",
+            "bot",
+            "messages",
+            "info",
+            "community",
+            "threads",
+            "control",
+            "operators",
+            "variables",
+            "lists",
+            "data",
+        )
     )
 
 

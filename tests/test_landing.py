@@ -131,12 +131,12 @@ class TestStructure:
 
 
 class TestCopy:
-    def test_all_nine_block_families_are_listed(self, client):
+    def test_all_eleven_block_families_are_listed(self, client):
         page = client.get("/").text
         for category in content.CATEGORIES:
             assert f'id="cat-{category["id"]}"' in page
             assert text_of(category["name"]) in text_of(page)
-        assert len(content.CATEGORIES) == 9
+        assert len(content.CATEGORIES) == 11
 
     def test_every_example_block_is_rendered_with_its_words(self, client):
         page = client.get("/").text

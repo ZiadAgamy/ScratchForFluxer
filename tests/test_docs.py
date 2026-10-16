@@ -173,3 +173,29 @@ def test_the_codenames_section_lists_every_codename(page):
         assert f"<code>${name}</code>" in page, name
     for example in ("$varCoins", "$listShop", "$countShop", "$$authorID"):
         assert example in page
+
+
+class TestChannelsAndForums:
+    def test_the_section_is_on_the_page_and_in_the_menu(self, page):
+        assert 'id="community"' in page and 'href="#community"' in page
+        for word in ("Manage Channels", "Manage Roles", "$newChannelID", "forum", "media", "tags", "private"):
+            assert word in page
+
+    def test_every_new_block_is_in_the_reference(self, page):
+        import html
+
+        text = html.unescape(page)
+        for type_ in catalogue.TOOLBOX["community"] + catalogue.TOOLBOX["threads"]:
+            assert catalogue.BLOCKS[type_]["tooltip"] in text, type_
+        for family in ("community", "threads"):
+            assert f'id="blocks-{family}"' in page
+
+    def test_the_colour_picker_is_explained_with_a_picture(self, page):
+        assert 'id="colour-picker"' in page and "colour-picker.png" in page
+        from PIL import Image
+
+        with Image.open(IMAGES / "colour-picker.png") as image:
+            assert image.size == (352, 333)
+
+    def test_there_are_eleven_families_in_the_reference(self, page):
+        assert len(re.findall(r'<section class="doc family"', page)) == 11

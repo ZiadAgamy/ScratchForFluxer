@@ -180,3 +180,96 @@ def test_a_codename_can_be_inserted_from_the_pop_up(open_editor):
     wait_for_version(page, 1)
     assert 'title=str(ctx.id)' in python_shown(page) or "ctx.id" in python_shown(page)
     assert_quiet(page)
+
+
+def channels(dialog):
+    return [int(dialog.locator(".cp-num").nth(i).input_value()) for i in range(3)]
+
+
+def open_picker(page):
+    press_card_options(page)
+    dialog = page.locator("dialog.dialog-embed")
+    dialog.locator("button.embed-picker").click()
+    expect(dialog.locator(".cp")).to_be_visible()
+    return dialog
+
+
+def test_the_colour_picker_opens_and_is_not_the_browsers_own(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    assert dialog.locator("input[type=color]").count() == 0
+    for part in (".cp-square", ".cp-hue", ".cp-num", ".cp-hex"):
+        assert dialog.locator(part).count() >= 1
+    assert dialog.locator(".cp-num").count() == 3
+    dialog.locator("button.embed-picker").click()
+    expect(dialog.locator(".cp")).to_be_hidden()
+
+
+def test_dragging_in_the_square_changes_the_colour(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    dialog.locator(".cp-square").scroll_into_view_if_needed()
+    box = dialog.locator(".cp-square").bounding_box()
+    dialog.locator(".cp-hue").fill("0")  # red
+    page.mouse.click(box["x"] + box["width"] - 2, box["y"] + 14)  # near the strongest, brightest corner (it is rounded)
+    r, g, b = channels(dialog)
+    assert r > 200 and g < 20 and b < 20
+    box = dialog.locator(".cp-square").bounding_box()  # the dialog may have scrolled
+    page.mouse.click(box["x"] + 2, box["y"] + 14)  # near the white corner
+    r, g, b = channels(dialog)
+    assert min(r, g, b) > 200
+    dialog.locator("button[type=submit]").click()
+    assert options_of(page)["color"].startswith("#f") or options_of(page)["color"].startswith("#e")
+
+
+def test_numbers_and_the_code_change_the_colour_and_back(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    dialog.locator(".cp-num").nth(0).fill("255")
+    dialog.locator(".cp-num").nth(1).fill("136")
+    dialog.locator(".cp-num").nth(2).fill("0")
+    expect(dialog.locator(".cp-hex")).to_have_value("#ff8800")
+    expect(dialog.locator(".embed-hex")).to_have_value("#ff8800")
+    dialog.locator(".cp-hex").fill("#00ff88")
+    expect(dialog.locator(".cp-num").nth(1)).to_have_value("255")
+    dialog.locator(".embed-hex").fill("#112233")
+    expect(dialog.locator(".cp-hex")).to_have_value("#112233")
+    dialog.locator("button[type=submit]").click()
+    assert options_of(page) == {"color": "#112233"}
+
+
+def test_the_square_works_with_the_keyboard(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    dialog.locator(".cp-hue").fill("0")
+    dialog.locator(".cp-hex").fill("#ffffff")
+    square = dialog.locator(".cp-square")
+    square.focus()
+    for _ in range(10):
+        page.keyboard.press("ArrowRight")  # more colour, still bright
+    expect(dialog.locator(".cp-hex")).not_to_have_value("#ffffff")
+    page.keyboard.press("Shift+ArrowDown")
+    value = dialog.locator(".cp-hex").input_value()
+    assert value.startswith("#") and value != "#ffffff"
+
+
+def test_the_last_colours_are_kept(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    dialog.locator(".cp-hex").fill("#abcdef")
+    dialog.locator(".cp-hex").press("Tab")  # the person settled on it
+    dialog.locator("button.embed-picker").click()  # close and open again: the row shows the last colours
+    dialog.locator("button.embed-picker").click()
+    swatch = dialog.locator(".cp-recent-swatch").first
+    expect(swatch).to_have_attribute("title", "#abcdef")
+    dialog.locator(".cp-hex").fill("#123456")
+    swatch.click()
+    expect(dialog.locator(".cp-hex")).to_have_value("#abcdef")
+
+
+def test_the_preview_follows_the_picker(open_editor):
+    page = open_editor(state=with_embed())
+    dialog = open_picker(page)
+    dialog.locator(".cp-hex").fill("#00ff88")
+    colour = page.evaluate("() => getComputedStyle(document.querySelector('.embed-card')).borderLeftColor")
+    assert colour == "rgb(0, 255, 136)"

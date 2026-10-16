@@ -151,7 +151,7 @@ class TestBlocklyDefinitions:
         blob = json.dumps(payload)
         assert len(payload["blocks"]) == len(catalogue.BLOCKS)
         assert "FLUXER_TOKEN" not in blob
-        assert len(blob) < 60_000
+        assert len(blob) < 90_000
 
 
 class TestColours:

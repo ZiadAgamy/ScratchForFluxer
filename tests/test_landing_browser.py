@@ -276,7 +276,7 @@ class TestWithoutJavaScript:
         assert page.is_disabled(RUN)
         assert page.locator(".blk").count() > 5
         # the explorer shows every family one after the other instead of hiding behind tabs
-        assert page.locator(".cat-panel:visible").count() == 9
+        assert page.locator(".cat-panel:visible").count() == 11
         assert not page.locator(".tabs").is_visible()
 
 
@@ -298,7 +298,7 @@ class TestBlockExplorer:
         assert page.get_attribute(".tab >> nth=1", "aria-selected") == "true"
         assert page.evaluate("() => document.activeElement.textContent.trim()") == "Bot"
         page.keyboard.press("End")
-        assert page.get_attribute(".tab >> nth=8", "aria-selected") == "true"
+        assert page.get_attribute(".tab >> nth=10", "aria-selected") == "true"
         page.keyboard.press("ArrowDown")  # wraps around
         assert page.get_attribute(".tab >> nth=0", "aria-selected") == "true"
         page.keyboard.press("Home")
@@ -309,7 +309,7 @@ class TestBlockExplorer:
         pairs = page.eval_on_selector_all(
             ".tab", "tabs => tabs.map(t => [t.getAttribute('role'), t.getAttribute('aria-controls'), t.id])"
         )
-        assert len(pairs) == 9
+        assert len(pairs) == 11
         for role, controls, tab_id in pairs:
             assert role == "tab"
             assert page.get_attribute(f"#{controls}", "role") == "tabpanel"
@@ -350,3 +350,44 @@ class TestLayout:
         colour = page.eval_on_selector("body", "e => getComputedStyle(e).backgroundColor")
         channels = [int(part) for part in colour.removeprefix("rgb(").removesuffix(")").split(",")]
         assert max(channels) < 30, colour  # the page background is near-black
+
+
+class TestMotion:
+    def test_sections_rise_into_view_as_they_are_scrolled_to(self, new_page, live_server):
+        page = open_landing(new_page, live_server)
+        assert page.evaluate("() => document.documentElement.classList.contains('reveal-on')")
+        far = page.locator(".cta-inner")
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.cta-inner')).opacity") == "0"
+        far.scroll_into_view_if_needed()
+        page.wait_for_function("() => document.querySelector('.cta-inner').classList.contains('is-in')")
+        page.wait_for_function("() => getComputedStyle(document.querySelector('.cta-inner')).opacity === '1'")
+        assert page.problems == []
+
+    def test_nothing_is_hidden_when_motion_is_reduced(self, new_page, live_server):
+        page = new_page(reduced_motion="reduce")
+        page.goto(live_server + "/")
+        assert not page.evaluate("() => document.documentElement.classList.contains('reveal-on')")
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.cta-inner')).opacity") == "1"
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.fb')).animationName") == "none"
+        assert page.problems == []
+
+    def test_the_floating_blocks_do_not_catch_clicks_or_text(self, new_page, live_server):
+        page = open_landing(new_page, live_server)
+        assert page.evaluate("() => getComputedStyle(document.querySelector('.hero-float')).pointerEvents") == "none"
+        assert page.evaluate("() => document.querySelector('.hero-float').getAttribute('aria-hidden')") == "true"
+        assert page.locator(".hero-float .fb").count() == 8
+
+    def test_the_pointer_nudges_the_blocks(self, new_page, live_server):
+        page = open_landing(new_page, live_server)
+        page.mouse.move(200, 300)
+        page.mouse.move(1100, 500)
+        page.wait_for_function("() => document.querySelector('.fb').style.getPropertyValue('--px') !== ''")
+        value = page.evaluate("() => document.querySelector('.fb').style.getPropertyValue('--px')")
+        assert value.endswith("px") and value != "0px"
+
+    def test_picking_a_family_shows_its_blocks(self, new_page, live_server):
+        page = open_landing(new_page, live_server)
+        page.locator("[data-explorer]").scroll_into_view_if_needed()
+        page.click(".tab[data-target=cat-threads]")
+        assert page.locator("#cat-threads").is_visible()
+        assert page.locator("#cat-threads .cat-blocks > *").count() == 3
