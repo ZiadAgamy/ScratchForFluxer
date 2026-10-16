@@ -230,6 +230,60 @@ async def verify_bot_token(
     )
 
 
+# --------------------------------------------------------------------------- emojis of the communities a bot is in
+MAX_EMOJI_GUILDS = 25
+MAX_EMOJI_PER_GUILD = 300
+
+
+async def fetch_bot_emojis(
+    settings: Settings, bot_token: str, *, client: httpx.AsyncClient | None = None
+) -> list[dict[str, Any]]:
+    """The custom emojis of every community the bot is in: ``[{"id", "name", "emojis": [{"id", "name", "animated"}]}]``.
+
+    A community whose emojis can't be read (or that has none) is left out; only a bad token is an error.
+    """
+    headers = {"Authorization": f"Bot {bot_token}", "Accept": "application/json"}
+    base = settings.fluxer_api_url
+    async with _client(client) as http:
+
+        async def get(path: str) -> Any:
+            try:
+                resp = await http.get(f"{base}{path}", headers=headers)
+            except httpx.HTTPError as exc:
+                log.warning("emoji lookup failed: %s", type(exc).__name__)
+                raise FluxerUnavailable() from exc
+            if resp.status_code in (401, 403) and path.endswith("/guilds"):
+                raise InvalidBotToken()
+            if resp.status_code == 429:
+                raise FluxerError("Fluxer is rate-limiting requests right now. Wait a few seconds and try again.")
+            if resp.status_code >= 500:
+                raise FluxerUnavailable()
+            if resp.status_code != 200:
+                return None
+            try:
+                return resp.json()
+            except ValueError:
+                return None
+
+        guilds = await get("/users/@me/guilds")
+        found: list[dict[str, Any]] = []
+        for guild in (guilds if isinstance(guilds, list) else [])[:MAX_EMOJI_GUILDS]:
+            if not isinstance(guild, dict) or not _str(guild.get("id"), 32).isdigit():
+                continue
+            guild_id = _str(guild.get("id"), 32)
+            rows = await get(f"/guilds/{guild_id}/emojis")
+            emojis = []
+            for row in (rows if isinstance(rows, list) else [])[:MAX_EMOJI_PER_GUILD]:
+                if not isinstance(row, dict) or not _str(row.get("id"), 32).isdigit() or row.get("available") is False:
+                    continue
+                name = _str(row.get("name"), 64)
+                if name:
+                    emojis.append({"id": _str(row.get("id"), 32), "name": name, "animated": bool(row.get("animated"))})
+            if emojis:
+                found.append({"id": guild_id, "name": _str(guild.get("name"), 100) or "Community", "emojis": emojis})
+    return found
+
+
 # --------------------------------------------------------------------------- plumbing
 class _client:
     """Use the injected client (tests) or open a short-lived one (serverless friendly)."""

@@ -15,6 +15,26 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 ENTRIES: list[dict[str, Any]] = [
     {
         "date": "2026-10-17",
+        "title": "Join event, status emoji and an emoji picker",
+        "summary": "Greet new communities, put an emoji in your bot's status, and add emoji to cards without leaving the editor.",
+        "changes": [
+            (
+                "new",
+                "“When the bot joins a community” event, with “community name” and “community ID” blocks (and the codename $communityName) to use inside it.",
+            ),
+            (
+                "new",
+                "“Set custom status” has an emoji box: type or paste any normal emoji, or a community emoji written the way the emoji picker writes it.",
+            ),
+            (
+                "new",
+                "An Emoji button under the text of a card (in Card options), with a search box, ordinary emoji, and the custom emoji of every community your bot is in.",
+            ),
+            ("docs", "The guide describes the emoji picker, and the new event is in the Events list."),
+        ],
+    },
+    {
+        "date": "2026-10-17",
         "title": "Search for blocks",
         "summary": "Find the block you want by typing its name instead of opening family after family.",
         "changes": [

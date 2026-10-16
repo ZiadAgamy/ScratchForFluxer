@@ -123,6 +123,7 @@ HAT_LABELS = {
     "command": "when the command is used",
     "member_join": "when someone joins a community",
     "member_leave": "when someone leaves a community",
+    "bot_join": "when the bot joins a community",
     "reaction_add": "when someone adds a reaction",
     "reaction_remove": "when someone removes a reaction",
 }
@@ -449,7 +450,7 @@ def uptime_seconds():
     "update_presence": {
         "imports": (),
         "needs": (),
-        "source": '''presence = {"status": "online", "custom_text": ""}
+        "source": '''presence = {"status": "online", "custom_text": "", "custom_emoji": ""}
 
 
 async def update_presence(**changes):
@@ -458,7 +459,18 @@ async def update_presence(**changes):
     fluxer.py has no helper for a custom status yet, so the presence message is sent straight to the gateway.
     """
     presence.update(changes)
-    custom = {"text": presence["custom_text"]} if presence["custom_text"] else None
+    custom = None
+    emoji = str(presence["custom_emoji"]).strip()
+    if presence["custom_text"] or emoji:
+        custom = {"text": presence["custom_text"] or None}
+        if emoji.startswith("<") and ">" in emoji:
+            # a community emoji, written <:name:123> (or <a:name:123> when it moves)
+            parts = emoji.strip("<>").split(":")
+            if len(parts) == 3 and parts[1] and parts[2].isdigit():
+                custom["emoji_id"] = parts[2]
+                custom["emoji_name"] = parts[1]
+        elif emoji:
+            custom["emoji_name"] = emoji
     payload = fluxer.gateway.GatewayPayload(
         op=fluxer.GatewayOpcode.PRESENCE_UPDATE,
         d={"since": None, "activities": [], "status": presence["status"], "afk": False, "custom_status": custom},
@@ -811,7 +823,7 @@ _PARTS: dict[str, dict[str, dict[str, Any]]] = {}
 class Context:
     """What the script a block sits in can offer: a message (``ctx`` or ``message``), a member, command text."""
 
-    kind: str  # ready | message | command | member_join | member_leave | reaction_add | reaction_remove
+    kind: str  # ready | message | command | member_join | member_leave | bot_join | reaction_add | reaction_remove
     hat: Node
     message_var: str | None = None
     member: bool = False
@@ -831,6 +843,8 @@ class Context:
             out.add("member")
         if self.kind.startswith("reaction"):
             out.add("reaction")
+        if self.kind == "bot_join":
+            out.add("community")
         return out
 
     @property
@@ -849,6 +863,8 @@ class Context:
             return f"{self.message_var}.guild_id"
         if self.member:
             return "member.guild_id"
+        if self.kind == "bot_join":
+            return "guild.id"
         if self.kind.startswith("reaction"):
             return "event.guild_id"
         return "None"
@@ -1252,6 +1268,7 @@ _NEEDS_LABELS = {
     "message": "a message",
     "command": "a command",
     "member": "a member who joined or left",
+    "community": "a community the bot just joined",
     "reaction": "a reaction",
 }
 _EMPTY = {
@@ -1290,7 +1307,9 @@ def value_template(block_type: str, template: str, *needs: str) -> None:
 
 
 statement_template("sff_set_status", "await update_presence(status={STATUS})", "update_presence")
-statement_template("sff_set_custom_status", "await update_presence(custom_text={TEXT})", "update_presence")
+statement_template(
+    "sff_set_custom_status", "await update_presence(custom_text={TEXT}, custom_emoji={EMOJI})", "update_presence"
+)
 statement_template("sff_console_print", "print({TEXT})")
 statement_template("sff_reply", "await {msg}.reply({TEXT})")
 statement_template("sff_send_here", "await {msg}.send({TEXT})")
@@ -1692,8 +1711,15 @@ def _command_text(gen: Generator, node: Node, ctx: Context) -> Expr:
 
 
 def _community_id(gen: Generator, node: Node, ctx: Context) -> Expr:
-    source = f"{ctx.message_var}.guild_id" if ctx.message_var else "member.guild_id"
+    if ctx.kind == "bot_join":
+        source = "guild.id"
+    else:
+        source = f"{ctx.message_var}.guild_id" if ctx.message_var else "member.guild_id"
     return Expr(f'str({source} or "")', P_ATOM, "text")
+
+
+def _community_name(gen: Generator, node: Node, ctx: Context) -> Expr:
+    return Expr('str(guild.name or "")', P_ATOM, "text")
 
 
 def _variable_value(gen: Generator, node: Node, ctx: Context) -> Expr:
@@ -1888,6 +1914,7 @@ VALUES.update(
         "sff_boolean": _boolean_block,
         "sff_command_text": _command_text,
         "sff_community_id": _community_id,
+        "sff_community_name": _community_name,
         "sff_variable": _variable_value,
         "sff_list_variable": _list_variable_value,
         "sff_join": _join,
@@ -1912,6 +1939,7 @@ _EVENTS = {
     "sff_event_message": ("message", "on_message", "message", "message"),
     "sff_event_member_join": ("member_join", "on_member_join", "data", "member_join"),
     "sff_event_member_leave": ("member_remove", "on_member_remove", "data", "member_leave"),
+    "sff_event_bot_join": ("guild_join", "on_guild_join", "guild", "bot_join"),
     "sff_event_reaction_add": ("raw_reaction_add", "on_raw_reaction_add", "event", "reaction_add"),
     "sff_event_reaction_remove": ("raw_reaction_remove", "on_raw_reaction_remove", "event", "reaction_remove"),
 }

@@ -314,6 +314,16 @@ _SPECS: list[dict[str, Any]] = [
         tooltip="Runs when a person leaves a community your bot is in.",
     ),
     block(
+        "sff_event_bot_join",
+        "events",
+        "hat",
+        ["when the bot joins a community"],
+        tooltip=(
+            "Runs when your bot is added to a community (for example, someone uses its invite link). Use "
+            "“community name” and “community ID” inside it."
+        ),
+    ),
+    block(
         "sff_event_reaction_add",
         "events",
         "hat",
@@ -355,8 +365,11 @@ _SPECS: list[dict[str, Any]] = [
         "sff_set_custom_status",
         "bot",
         "statement",
-        ["set custom status to", text("TEXT", "Learning blocks")],
-        tooltip="Shows a short text under your bot's name. Leave it empty to clear it.",
+        ["set custom status to", text("TEXT", "Learning blocks"), "with emoji", field("EMOJI", "", max_length=80)],
+        tooltip=(
+            "Shows a short text, and an emoji if you want one, next to your bot's name. For the emoji, type or paste "
+            "any normal emoji, or paste a community emoji written like <:name:123456789>. Leave both empty to clear it."
+        ),
     ),
     block(
         "sff_console_print",
@@ -770,7 +783,16 @@ _SPECS: list[dict[str, Any]] = [
         "value",
         ["community ID"],
         tooltip="The ID of the community. It is empty in private messages.",
-        needs=("message", "member"),
+        needs=("message", "member", "community"),
+        returns="text",
+    ),
+    block(
+        "sff_community_name",
+        "info",
+        "value",
+        ["community name"],
+        tooltip="The name of the community the bot just joined. Works inside “when the bot joins a community”.",
+        needs=("community",),
         returns="text",
     ),
     block(
@@ -1335,6 +1357,7 @@ CODENAME_LIST: list[tuple[str, str, str, str]] = [
     ("mentionedID", "sff_first_mention_id", "The message", "ID of the first person mentioned in it"),
     ("commandText", "sff_command_text", "The command", "Everything written after the command"),
     ("communityID", "sff_community_id", "Community", "ID of the community (server)"),
+    ("communityName", "sff_community_name", "Community", "Name of the community the bot just joined"),
     ("memberName", "sff_member_name", "Members and reactions", "Name of the member who joined"),
     ("memberMention", "sff_member_mention", "Members and reactions", "A mention of that member"),
     ("memberID", "sff_member_id", "Members and reactions", "ID of that member"),
