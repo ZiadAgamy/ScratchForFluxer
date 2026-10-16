@@ -78,6 +78,12 @@
     <div class="ed-blockly" id="blockly"></div>
 
     <div class="ed-tools" role="toolbar" aria-label="Workspace tools" id="ed-tools" hidden>
+      <div class="ed-search" id="ed-search">
+        {{ icon("magnifying-glass") }}
+        <input class="ed-search-input" id="ed-search-input" type="text" role="combobox" aria-expanded="false" aria-controls="ed-search-list" aria-autocomplete="list" autocomplete="off" spellcheck="false" placeholder="Search blocks…  ( / )" aria-label="Search for a block">
+        <ul class="ed-search-list" id="ed-search-list" role="listbox" aria-label="Blocks that match" hidden></ul>
+      </div>
+      <span class="ed-tools-sep" aria-hidden="true"></span>
       <button class="ed-icon-btn" id="tool-undo" type="button" aria-label="Undo" title="Undo (Ctrl+Z)">{{ icon("arrow-u-up-left") }}</button>
       <button class="ed-icon-btn" id="tool-redo" type="button" aria-label="Redo" title="Redo (Ctrl+Shift+Z)">{{ icon("arrow-u-up-right") }}</button>
       <span class="ed-tools-sep" aria-hidden="true"></span>
@@ -86,6 +92,12 @@
       <button class="ed-icon-btn" id="tool-zoom-out" type="button" aria-label="Zoom out" title="Zoom out">{{ icon("magnifying-glass-minus") }}</button>
       <button class="ed-icon-btn" id="tool-zoom-fit" type="button" aria-label="Show all blocks" title="Show all blocks">{{ icon("corners-out") }}</button>
       <button class="ed-icon-btn" id="tool-zoom-in" type="button" aria-label="Zoom in" title="Zoom in">{{ icon("magnifying-glass-plus") }}</button>
+    </div>
+
+    <div class="ed-flyout-search" id="ed-flyout-search" hidden>
+      {{ icon("magnifying-glass") }}
+      <input id="ed-flyout-input" type="text" autocomplete="off" spellcheck="false" placeholder="Search this family…" aria-label="Search the blocks in this family">
+      <button class="ed-icon-btn" id="ed-flyout-clear" type="button" aria-label="Clear the search" hidden>{{ icon("x") }}</button>
     </div>
 
     <div class="ed-tip" id="ed-tip" hidden>
@@ -204,6 +216,7 @@
   <script src="{{ static('js/editor/colorpicker.js') }}" defer></script>
   <script src="{{ static('js/editor/embeds.js') }}" defer></script>
   <script src="{{ static('js/editor/blocks.js') }}" defer></script>
+  <script src="{{ static('js/editor/search.js') }}" defer></script>
   <script src="{{ static('js/editor/code.js') }}" defer></script>
   <script src="{{ static('js/editor/problems.js') }}" defer></script>
   <script src="{{ static('js/editor/console.js') }}" defer></script>

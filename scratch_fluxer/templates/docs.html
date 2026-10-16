@@ -61,6 +61,7 @@
     <p class="docs-nav-title">Blocks</p>
     <ul class="docs-nav-blocks">
       <li><a href="#blocks">How blocks work</a></li>
+      <li><a href="#find-blocks">Finding a block</a></li>
       <li><a href="#cards">Cards (embeds)</a></li>
       <li><a href="#codenames">Codenames</a></li>
       <li><a href="#community">Channels, roles, threads</a></li>
@@ -491,7 +492,15 @@ sudo journalctl -u mybot -f{% endcall %}
         </div>
       </div>
 
-      <p class="muted">Every block below is shown as it looks in the editor. Use the search box in the side menu to find one, for example <em>role</em> or <em>embed</em>.</p>
+      <h3 id="find-blocks">Finding a block by typing</h3>
+      <p>You don't have to remember which family a block lives in. There are two search boxes in the editor:</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>The search box at the top of the workspace</strong> (next to undo and redo) looks through every block. Type a word such as <em>role</em> or <em>embed</em>, press <kbd>Enter</kbd> or click a result, and the block appears in the middle of your workspace, ready to drag. Press <kbd>/</kbd> or <kbd>Ctrl</kbd>+<kbd>K</kbd> to jump into it, the arrow keys to move through the results and <kbd>Esc</kbd> to leave.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>The search box inside each family</strong> narrows the list you opened. Open <em>Messages</em>, type <em>reaction</em>, and only the blocks about reactions stay. Clear the box, or close the family, to see them all again.</span></li>
+      </ul>
+      <p>Both look at the words on the block and at its description, so typing several words (like <em>ban member</em>) finds blocks that have all of them.</p>
+
+      <p class="muted">Every block below is shown as it looks in the editor.</p>
     </section>
 
     <section class="doc" id="cards" aria-labelledby="h-cards">
