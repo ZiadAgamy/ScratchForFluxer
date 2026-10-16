@@ -2405,3 +2405,148 @@ svg[display="none"] {
   appearance: none;
   -webkit-appearance: none;
 }
+
+/* ---- block search: the toolbar box and the box over each family's list ---- */
+.ed-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-inline: 0.5rem;
+  color: var(--text-3);
+}
+
+.ed-search-input,
+.ed-flyout-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.ed-search-input {
+  width: 13rem;
+  padding-block: 0.4rem;
+}
+
+.ed-search:focus-within,
+.ed-flyout-search:focus-within {
+  color: var(--accent-hi);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: var(--r-sm);
+}
+
+.ed-search-list {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  left: 0;
+  z-index: 30;
+  width: min(26rem, 80vw);
+  max-height: 55vh;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+}
+
+.ed-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ed-search-row.is-active {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.ed-search-dot {
+  flex: none;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+}
+
+.ed-search-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-search-family {
+  flex: none;
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.ed-search-none {
+  padding: 0.7rem 0.6rem;
+  color: var(--text-3);
+  font-size: 0.875rem;
+}
+
+.ed-flyout-search {
+  position: absolute;
+  z-index: 25; /* over Blockly's block list (20) */
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-sizing: border-box;
+  max-width: 24rem;
+  padding: 0.3rem 0.6rem;
+  color: var(--text-3);
+}
+
+.ed-flyout-search input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg-raised);
+}
+
+.ed-flyout-search .ph-magnifying-glass {
+  display: none;
+}
+
+@media (max-width: 56rem) {
+  .ed-tools {
+    flex-wrap: wrap;
+    max-width: calc(100% - var(--rail-w) - 1rem); /* keep clear of the family list on the left */
+  }
+
+  .ed-search {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .ed-search-input {
+    width: 100%;
+    flex: 1;
+  }
+
+  .ed-search-list {
+    width: 100%;
+  }
+
+  .ed-search-family {
+    display: none;
+  }
+
+  .ed-search + .ed-tools-sep {
+    display: none;
+  }
+}
