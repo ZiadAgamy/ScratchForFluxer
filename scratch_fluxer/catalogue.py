@@ -213,7 +213,10 @@ _SPECS: list[dict[str, Any]] = [
         None,
         "literal",
         [field("TEXT", "", max_length=2000)],
-        tooltip="Some text.",
+        tooltip=(
+            "Some text. Write a codename like $authorName or $varCoins in it to put that value inside the text. "
+            "Write $$ for a plain $."
+        ),
         returns="text",
     ),
     block(
@@ -1109,6 +1112,54 @@ _SPECS: list[dict[str, Any]] = [
 BLOCKS: dict[str, dict[str, Any]] = {spec["type"]: spec for spec in _SPECS}
 assert len(BLOCKS) == len(_SPECS), "two blocks share a type"
 
+#: Codenames: a short word written as ``$word`` inside a text box that stands for a block with no sockets of its own
+#: (``$authorID`` is the block "author ID"). ``[codename, block type, group, what it is]``; the order is the order the
+#: guide and the pop-up list them in. A codename works only where its block would (``authorID`` needs a message).
+CODENAME_LIST: list[tuple[str, str, str, str]] = [
+    ("authorName", "sff_msg_author_name", "The message", "Name of the person who wrote the message"),
+    ("authorMention", "sff_msg_author_mention", "The message", "A mention of that person (they get pinged)"),
+    ("authorID", "sff_msg_author_id", "The message", "ID of that person"),
+    ("messageText", "sff_msg_text", "The message", "What the message says"),
+    ("messageID", "sff_msg_id", "The message", "ID of the message"),
+    ("channelID", "sff_msg_channel_id", "The message", "ID of the channel it was written in"),
+    ("mentionedID", "sff_first_mention_id", "The message", "ID of the first person mentioned in it"),
+    ("commandText", "sff_command_text", "The command", "Everything written after the command"),
+    ("communityID", "sff_community_id", "Community", "ID of the community (server)"),
+    ("memberName", "sff_member_name", "Members and reactions", "Name of the member who joined"),
+    ("memberMention", "sff_member_mention", "Members and reactions", "A mention of that member"),
+    ("memberID", "sff_member_id", "Members and reactions", "ID of that member"),
+    ("reactorID", "sff_reactor_id", "Members and reactions", "ID of the person who reacted"),
+    ("botName", "sff_bot_name", "The bot", "The bot's name"),
+    ("botPing", "sff_bot_ping", "The bot", "Bot ping in milliseconds"),
+    ("botUptime", "sff_bot_uptime_text", "The bot", "How long the bot has been running, as words"),
+    ("botUptimeSeconds", "sff_bot_uptime_seconds", "The bot", "How long the bot has been running, in seconds"),
+    ("communityCount", "sff_bot_community_count", "The bot", "How many communities the bot is in"),
+]
+
+#: Codenames for the person's own variables and lists: ``$varCoins``, ``$listShop``, ``$countShop``.
+#: ``[prefix, what it does]``
+VARIABLE_CODENAMES: list[tuple[str, str]] = [
+    ("var", "The value of a variable"),
+    ("list", "All the items of a list, separated by commas"),
+    ("count", "How many items a list has"),
+]
+
+CODENAMES: dict[str, str] = {name.lower(): type_ for name, type_, _group, _what in CODENAME_LIST}
+assert len(CODENAMES) == len(CODENAME_LIST), "two codenames are the same"
+for _name, _type, _group, _what in CODENAME_LIST:
+    assert _type in BLOCKS and not [p for line in BLOCKS[_type]["lines"] for p in line if not isinstance(p, str)], _name
+
+
+def codenames_for_browser() -> dict[str, Any]:
+    return {
+        "blocks": [
+            {"name": name, "group": group, "what": what, "needs": list(BLOCKS[type_]["needs"] or [])}
+            for name, type_, group, what in CODENAME_LIST
+        ],
+        "variables": [{"prefix": prefix, "what": what} for prefix, what in VARIABLE_CODENAMES],
+    }
+
+
 #: Blocks that are in the toolbox, per category, in the order they are listed above.
 TOOLBOX: dict[str, list[str]] = {
     category: [spec["type"] for spec in _SPECS if spec["category"] == category and spec["shape"] != "literal"]
@@ -1273,6 +1324,7 @@ def browser_payload() -> dict[str, Any]:
         "hats": HATS,
         "locked": list(LOCKED_TYPES),
         "embed": embeds.browser_config(),
+        "codenames": codenames_for_browser(),
     }
 
 

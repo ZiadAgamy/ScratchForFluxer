@@ -129,3 +129,19 @@ def families() -> list[dict[str, Any]]:
             }
         )
     return found
+
+
+def codename_groups() -> list[dict[str, Any]]:
+    """The codenames, grouped the way the guide shows them: ``[{"name", "items": [{"code", "what", "block", "where"}]}]``."""
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for name, type_, group, what in catalogue.CODENAME_LIST:
+        spec = catalogue.BLOCKS[type_]
+        groups.setdefault(group, []).append(
+            {
+                "code": f"${name}",
+                "what": what,
+                "block": catalogue.flat_label(type_),
+                "where": where_it_works(spec["needs"]) or "anywhere",
+            }
+        )
+    return [{"name": name, "items": items} for name, items in groups.items()]

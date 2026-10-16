@@ -509,6 +509,14 @@ def clean_text(value: Any, limit: int = MAX_TEXT) -> str:
     return "".join("\ufffd" if "\ud800" <= ch <= "\udfff" else ch for ch in kept)[:limit]  # lone surrogates -> U+FFFD
 
 
+#: ``$$``, ``${any words}`` or ``$name``: see ``Generator.codetext``.
+_CODENAME = re.compile(r"\$(?:(\$)|\{([^{}$\n]{1,80})\}|([^\W\d]\w*))")
+
+
+def _squash(name: str) -> str:
+    return re.sub(r"[\s_\-]+", "", name).lower()
+
+
 _SIMPLE_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*")
 
 
@@ -902,6 +910,76 @@ class Generator:
         ident = self.idents[var_id]
         self.used_vars.setdefault(ident, kind)
         return ident, kind
+
+    # ---- codenames ($authorID, $varCoins ...)
+    def _find_variable(self, wanted: str, kind: str) -> tuple[str, str] | None:
+        """(python name, kind) of the variable of ``kind`` whose name is ``wanted``. Case, spaces and ``_`` don't count."""
+        squash = _squash(wanted)
+        if not squash:
+            return None
+        for var_id, info in self.variables.items():
+            if info["type"] == kind and (info["name"] == wanted or _squash(info["name"]) == squash):
+                return self.idents[var_id], kind
+        return None
+
+    def _codename_piece(self, ref: str, node: Node, ctx: Context) -> Expr | None:
+        """What ``$ref`` stands for, or None when no block or variable has that codename."""
+        type_ = catalogue.CODENAMES.get(ref.lower())
+        if type_ is not None:  # the same block, as if it were dropped in here
+            return self.value(Node(type_, node.id, {}, {}), "raw", ctx, node)
+        text = ref.strip()
+        lowered = text.lower()
+        for prefix, kind in (("var", ""), ("list", "List"), ("count", "List")):
+            if not lowered.startswith(prefix):
+                continue
+            rest = text[len(prefix) :].lstrip(": ")
+            if not rest:
+                continue
+            found = self._find_variable(rest, kind)
+            if found is None:
+                other = self._find_variable(rest, "List" if kind == "" else "")
+                if other is not None:
+                    hint = "$var" if kind == "List" else "$list"
+                    self.warn(f"“{rest}” is not that kind of variable. Try {hint}{rest.replace(' ', '')}.", node)
+                    return Expr("", P_ATOM, "text", "")
+                continue
+            ident, _kind = found
+            self.used_vars.setdefault(ident, kind)
+            if prefix == "var":
+                return Expr(ident, P_ATOM, "any")
+            if prefix == "list":
+                return Expr(f'", ".join(str(item) for item in {ident})', P_ATOM, "text")
+            return Expr(f"len({ident})", P_ATOM, "number")
+        return None
+
+    def codetext(self, node: Node, ctx: Context, text: str) -> Expr:
+        """Text with codenames in it (``Coins: $varCoins``) as one expression. ``$$`` writes a single ``$``."""
+        if "$" not in text:
+            return text_literal(text)
+        pieces: list[Expr] = []
+        position = 0
+        warned: set[str] = set()
+        for match in _CODENAME.finditer(text):
+            if match.start() > position:
+                pieces.append(text_literal(text[position : match.start()]))
+            position = match.end()
+            if match.group(1):  # $$
+                pieces.append(text_literal("$"))
+                continue
+            ref = match.group(2) or match.group(3)
+            piece = self._codename_piece(ref, node, ctx)
+            if piece is None:
+                if ref not in warned:
+                    warned.add(ref)
+                    self.warn(
+                        f"I don't know the codename “${ref}”, so it is written as it is. Use $$ for a plain $.", node
+                    )
+                pieces.append(text_literal(match.group(0)))
+            else:
+                pieces.append(piece)
+        if position < len(text):
+            pieces.append(text_literal(text[position:]))
+        return _assemble(self, pieces, node)
 
     # ---- field readers
     def field_text(self, node: Node, name: str) -> str:
@@ -1368,12 +1446,12 @@ def _write_embed(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: i
         rows.add(indent, f"embed.{method}(url={python_string('attachment://' + plain)})")
         files.append(f"fluxer.File(ASSETS / {python_string(chosen)}, filename={python_string(plain)})")
     if "author" in options:
-        arguments = [f"name={python_string(options['author'])}"]
+        arguments = [f"name={gen.codetext(node, ctx, options['author']).code}"]
         if "author_icon" in options:
             arguments.append(f"icon_url={python_string(options['author_icon'])}")
         rows.add(indent, f"embed.set_author({', '.join(arguments)})")
     if "footer" in options:
-        arguments = [f"text={python_string(options['footer'])}"]
+        arguments = [f"text={gen.codetext(node, ctx, options['footer']).code}"]
         if "footer_icon" in options:
             arguments.append(f"icon_url={python_string(options['footer_icon'])}")
         rows.add(indent, f"embed.set_footer({', '.join(arguments)})")
@@ -1507,7 +1585,7 @@ STATEMENTS.update(
 
 
 def _text_literal_block(gen: Generator, node: Node, ctx: Context) -> Expr:
-    return text_literal(gen.field_text(node, "TEXT"))
+    return gen.codetext(node, ctx, gen.field_text(node, "TEXT"))
 
 
 def _number_literal_block(gen: Generator, node: Node, ctx: Context) -> Expr:
@@ -1562,6 +1640,11 @@ def _literal_as_text(expr: Expr) -> str | None:
 def _join(gen: Generator, node: Node, ctx: Context) -> Expr:
     pieces: list[Expr] = []
     _join_pieces(gen, node, ctx, node, pieces)
+    return _assemble(gen, pieces, node)
+
+
+def _assemble(gen: Generator, pieces: list[Expr], node: Node) -> Expr:
+    """The pieces written one after another as text (an f-string when every piece is a plain name)."""
     merged: list[str | Expr] = []  # literal text (as str) and everything else (as Expr)
     for piece in pieces:
         literal = _literal_as_text(piece)
