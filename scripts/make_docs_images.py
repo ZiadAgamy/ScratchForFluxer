@@ -109,7 +109,10 @@ def main() -> None:
     cookie = deps.get_codec().dump_session({"u": user_id, "e": epoch, "c": csrf, "t": int(time.time())})
 
     options = {"args": ["--no-sandbox"]}
-    for candidate in (os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE"), "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"):
+    for candidate in (
+        os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE"),
+        "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    ):
         if candidate and Path(candidate).exists():
             options["executable_path"] = candidate
             break
@@ -250,13 +253,19 @@ def main() -> None:
 
         # ---- running: press Run, wait for it, let someone say !ping
         page.click("#run-btn")
-        page.wait_for_function("() => document.querySelector('#run-state')?.textContent.includes('Running')", timeout=30000)
+        page.wait_for_function(
+            "() => document.querySelector('#run-state')?.textContent.includes('Running')", timeout=30000
+        )
         mock.say("!ping")
         mock.wait_for(lambda: mock.replies() == ["Pong!"])
         page.wait_for_timeout(1200)
         page.evaluate(
             BADGE_JS,
-            [["#run-state", 1, "left", -4, -26], ["#stop-btn", 2, "center", 0, 34], ["#console-log", 3, "right", -26, 60]],
+            [
+                ["#run-state", 1, "left", -4, -26],
+                ["#stop-btn", 2, "center", 0, 34],
+                ["#console-log", 3, "right", -26, 60],
+            ],
         )
         shot(page, "running")
         page.evaluate("() => document.querySelectorAll('.docs-shot-badge').forEach((b) => b.remove())")
@@ -301,7 +310,9 @@ def main() -> None:
         popup.goto(f"{base}/bots/{bot_id}/edit")
         popup.wait_for_selector("#ed-loading", state="hidden", timeout=20000)
         popup.wait_for_function("() => window.sffEditor.blocks.workspace().getAllBlocks(false).length > 0")
-        popup.evaluate("() => window.sffEditor.blocks.workspace().getBlockById('card1').getField('OPTIONS').showEditor_()")
+        popup.evaluate(
+            "() => window.sffEditor.blocks.workspace().getBlockById('card1').getField('OPTIONS').showEditor_()"
+        )
         window = popup.locator("dialog.dialog-embed")
         window.wait_for(state="visible")
         window.locator(".embed-swatch[data-name='orange']").click()
@@ -311,7 +322,9 @@ def main() -> None:
         window.locator("input[id$='-author']").fill("The team")
         window.locator("input[id$='-footer']").fill("Thanks for reading")
         window.locator("input[id$='-time']").check()
-        window.locator("summary", has_text="Author and footer").click()  # fold both away again so the picture stays short
+        window.locator(
+            "summary", has_text="Author and footer"
+        ).click()  # fold both away again so the picture stays short
         window.locator("summary", has_text="Link, pictures").click()
         window.locator(".dialog-body").evaluate("(node) => { node.scrollTop = 0; }")
         popup.wait_for_timeout(200)
