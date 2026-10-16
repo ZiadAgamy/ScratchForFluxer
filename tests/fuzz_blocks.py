@@ -205,6 +205,8 @@ def script_for(needs: tuple[str, ...] | None) -> Callable[..., dict[str, Any]]:
         return lambda *steps: hat("sff_event_member_join", *steps)
     if wanted == "reaction":
         return lambda *steps: hat("sff_event_reaction_add", *steps)
+    if wanted == "community":
+        return lambda *steps: hat("sff_event_bot_join", *steps)
     return on_ready
 
 
@@ -268,6 +270,7 @@ HAT_PROVIDES = {
     "sff_event_command": {"message", "command"},
     "sff_event_member_join": {"member"},
     "sff_event_member_leave": {"member"},
+    "sff_event_bot_join": {"community"},
     "sff_event_reaction_add": {"reaction"},
     "sff_event_reaction_remove": {"reaction"},
 }

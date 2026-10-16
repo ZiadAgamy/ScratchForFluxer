@@ -378,7 +378,7 @@ STATEMENT_CASES = [
     pytest.param(
         "ready",
         [block("sff_set_custom_status", inputs={"TEXT": "Learning blocks"})],
-        ['await update_presence(custom_text="Learning blocks")'],
+        ['await update_presence(custom_text="Learning blocks", custom_emoji="")'],
         id="set the custom status",
     ),
     pytest.param("ready", [show("hi")], ['print("hi")'], id="write to the console"),
@@ -481,7 +481,7 @@ class TestStatements:
             hat="ready",
         )
         assert result.code.count("async def update_presence(**changes):") == 1
-        assert 'presence = {"status": "online", "custom_text": ""}' in result.code
+        assert 'presence = {"status": "online", "custom_text": "", "custom_emoji": ""}' in result.code
 
     def test_logging_is_set_up_only_when_a_block_logs(self):
         quiet, _ = script(show("x"), hat="ready")

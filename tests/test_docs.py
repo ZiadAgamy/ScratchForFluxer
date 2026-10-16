@@ -209,3 +209,8 @@ class TestChannelsAndForums:
 def test_the_guide_explains_block_search(page):
     assert 'id="find-blocks"' in page and 'href="#find-blocks"' in page
     assert "Ctrl" in page and "search box inside each family" in page
+
+
+def test_the_guide_explains_the_emoji_picker(page):
+    assert 'id="emoji-picker"' in page
+    assert "&lt;:party:123456789&gt;" in page or "<:party:123456789>" in page

@@ -21,6 +21,7 @@ from blocks import (
     list_variable,
     math_op,
     message_text,
+    on_bot_join,
     on_join,
     on_leave,
     on_message,
@@ -615,3 +616,42 @@ async def test_a_mistake_in_one_script_is_logged_and_the_bot_carries_on(tmp_path
     assert running.texts == ["still here"]
     assert any("ZeroDivisionError" in (r.exc_text or "") for r in caplog.records)
     assert any("Error in command 'boom'" in r.getMessage() for r in caplog.records)
+
+
+async def test_when_the_bot_joins_a_community(tmp_path, capsys):
+    running = build(
+        tmp_path,
+        on_bot_join(
+            block(
+                "sff_send_channel",
+                inputs={"CHANNEL": "300", "TEXT": join(join("Hello ", block("sff_community_name")), "!")},
+            ),
+            show(block("sff_community_id")),
+        ),
+    )
+    await running.ready()
+    await running.guild(guild_id=777)
+    assert running.texts == ["Hello Test community!"]
+    assert capsys.readouterr().out.strip() == "777"
+
+
+async def test_custom_status_with_a_unicode_and_a_community_emoji(tmp_path):
+    running = build(
+        tmp_path,
+        on_ready(
+            block("sff_set_custom_status", inputs={"TEXT": "Hi"}, fields={"EMOJI": "🔥"}),
+            block("sff_set_custom_status", inputs={"TEXT": "Hi"}, fields={"EMOJI": "<:party:123456>"}),
+            block("sff_set_custom_status", inputs={"TEXT": ""}, fields={"EMOJI": "🎉"}),
+            block("sff_set_custom_status", inputs={"TEXT": "x"}, fields={"EMOJI": "<:broken>"}),
+            block("sff_set_custom_status", inputs={"TEXT": ""}, fields={"EMOJI": ""}),
+        ),
+    )
+    await running.ready()
+    sent = [payload.d["custom_status"] for payload in running.gateway.payloads]
+    assert sent == [
+        {"text": "Hi", "emoji_name": "🔥"},
+        {"text": "Hi", "emoji_id": "123456", "emoji_name": "party"},
+        {"text": None, "emoji_name": "🎉"},
+        {"text": "x"},
+        None,
+    ]

@@ -108,8 +108,11 @@ def test_closing_a_family_clears_its_search(open_editor):
     page = open_editor(state=workspace())
     open_family(page, "Messages")
     page.fill("#ed-flyout-input", "reaction")
-    page.keyboard.press("Escape")
-    page.keyboard.press("Escape")
+    page.focus("#ed-flyout-input")
+    page.keyboard.press("Escape")  # the first Escape empties the box
+    expect(page.locator("#ed-flyout-input")).to_have_value("")
+    expect(page.locator("#ed-flyout-input")).to_be_focused()
+    page.keyboard.press("Escape")  # the second closes the family
     expect(page.locator("#ed-flyout-search")).to_be_hidden()
     open_family(page, "Messages")
     assert page.input_value("#ed-flyout-input") == ""

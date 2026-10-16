@@ -104,6 +104,10 @@ def on_join(*steps: dict[str, Any], **kw: Any):
     return hat("sff_event_member_join", *steps, **kw)
 
 
+def on_bot_join(*steps: dict[str, Any], **kw: Any):
+    return hat("sff_event_bot_join", *steps, **kw)
+
+
 def on_leave(*steps: dict[str, Any], **kw: Any):
     return hat("sff_event_member_leave", *steps, **kw)
 

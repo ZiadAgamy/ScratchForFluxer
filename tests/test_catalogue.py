@@ -13,7 +13,7 @@ from scratch_fluxer import catalogue, compiler
 ROOT = Path(__file__).resolve().parent.parent
 SHAPES = {"hat", "statement", "cap", "value", "boolean", "literal", "config"}
 RETURNS = {"text", "number", "boolean", "list", "any"}
-NEEDS = {"message", "command", "member", "reaction"}
+NEEDS = {"message", "command", "member", "reaction", "community"}
 PART_KEYS = ("input", "field", "number", "menu", "var", "asset", "embed", "statements")
 
 
