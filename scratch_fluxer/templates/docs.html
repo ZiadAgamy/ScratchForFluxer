@@ -518,6 +518,15 @@ sudo journalctl -u mybot -f{% endcall %}
       {% call callout("note", "The preview is close, not exact.") %}Pictures from a web address are not shown in the preview (the editor only loads its own files), but they are sent. Fluxer draws the final card in its own style.{% endcall %}
       <p>Press <strong>Reset</strong> in the window to go back to a plain card. Cards you made before this window existed keep their colour.</p>
 
+      <h3 id="emoji-picker">The emoji picker</h3>
+      <p>Under the card's <strong>Text</strong> there is an <strong>Emoji</strong> button. Press it to open a small picker with a search box:</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>Your communities' emoji come first.</strong> The editor asks Fluxer which communities your bot is in and lists their custom emoji, one group per community. A community with no custom emoji is left out. If the list can't be loaded, the ordinary emoji still work.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Ordinary emoji</strong> come in groups (faces, hearts, animals, food and more). Type a word such as <em>fire</em> or <em>heart</em> in the search box to find one.</span></li>
+        <li>{{ icon("check-circle") }}<span>Pressing an emoji writes it into the text where your cursor is. A community emoji is written like <code>&lt;:party:123456789&gt;</code>, which is how Fluxer reads it, so leave that as it is. The bot can only use a community emoji from a community it is in.</span></li>
+      </ul>
+      <p>The picker is only in the card's <em>Text</em>. Anywhere else you can still type or paste an emoji yourself.</p>
+
       <h3 id="colour-picker">The colour picker</h3>
       <p>Press the coloured square under <em>Colour of the edge</em>. A picker opens that works the same in every browser:</p>
       {{ shot("colour-picker", "The colour picker: a square for the shade, a rainbow slider, boxes for red, green, blue and the colour code, and a button to pick a colour from the screen.", "The colour picker.", width=352, height=333, class="shot-narrow") }}
