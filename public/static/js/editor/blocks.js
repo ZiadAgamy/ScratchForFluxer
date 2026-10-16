@@ -215,7 +215,7 @@
   // ------------------------------------------------------------------------------------------------ registering
   function defineBlocks() {
     B.fieldRegistry.register("field_sff_asset", FieldAsset);
-    E.embeds.configure(payload.embed);
+    E.embeds.configure(payload.embed, payload.codenames);
     E.embeds.register();
     B.defineBlocksWithJsonArray(payload.blocks);
 

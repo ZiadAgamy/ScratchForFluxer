@@ -10,11 +10,73 @@
   var el = E.el;
 
   var config = null;
+  var codenames = null;
   var LINK = "__link__";
   var UPLOAD = "__upload__";
 
   function limits() {
     return (config && config.limits) || {};
+  }
+
+  /* ------------------------------------------------------------------------------------------ codenames */
+
+  /* The word a variable or list is written as: `$varCoins` when its name is one word, `${var Coins Balance}` otherwise. */
+  function variableCodename(prefix, name) {
+    return /^[A-Za-z_]\w*$/.test(name) ? "$" + prefix + name : "${" + prefix + " " + name + "}";
+  }
+
+  function workspaceVariables() {
+    try {
+      var space = B.getMainWorkspace();
+      return space ? space.getAllVariables().map(function (v) { return { name: v.getName(), list: v.getType() === "List" }; }) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /* A drop-down that writes a codename into the text box at the cursor. Returns null when the editor has none to offer. */
+  function codenameMenu(control, id) {
+    if (!codenames || !codenames.blocks || !codenames.blocks.length) return null;
+    var select = el("select", { class: "input codename-select", id: id, "aria-label": "Insert a codename" });
+    select.appendChild(el("option", { value: "", text: "Insert a codename…" }));
+    var group = null;
+    var groupName = "";
+    codenames.blocks.forEach(function (entry) {
+      if (entry.group !== groupName) {
+        groupName = entry.group;
+        group = el("optgroup", { label: groupName });
+        select.appendChild(group);
+      }
+      group.appendChild(el("option", { value: "$" + entry.name, text: "$" + entry.name + " — " + entry.what }));
+    });
+    var mine = workspaceVariables();
+    if (mine.length) {
+      var yours = el("optgroup", { label: "Your variables and lists" });
+      mine.forEach(function (v) {
+        if (v.list) {
+          yours.appendChild(el("option", { value: variableCodename("list", v.name), text: variableCodename("list", v.name) + " — items of the list" }));
+          yours.appendChild(el("option", { value: variableCodename("count", v.name), text: variableCodename("count", v.name) + " — how many items" }));
+        } else {
+          yours.appendChild(el("option", { value: variableCodename("var", v.name), text: variableCodename("var", v.name) + " — value" }));
+        }
+      });
+      select.appendChild(yours);
+    }
+    select.addEventListener("change", function () {
+      var word = select.value;
+      select.value = "";
+      if (!word) return;
+      var start = typeof control.selectionStart === "number" ? control.selectionStart : control.value.length;
+      var end = typeof control.selectionEnd === "number" ? control.selectionEnd : start;
+      var next = control.value.slice(0, start) + word + control.value.slice(end);
+      var max = parseInt(control.getAttribute("maxlength") || "0", 10);
+      if (max && next.length > max) return;
+      control.value = next;
+      control.focus();
+      try { control.setSelectionRange(start + word.length, start + word.length); } catch (e) { /* not a text box */ }
+      control.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    return select;
   }
 
   /* ------------------------------------------------------------------------------------------ the options */
@@ -235,6 +297,10 @@
           redraw();
         });
         wrapper.input = input;
+        if (kind === "text") {
+          var menu = codenameMenu(input, uid + key + "-codename");
+          if (menu) input.parentNode.insertBefore(menu, input.nextSibling);
+        }
         return wrapper;
       }
 
@@ -262,7 +328,8 @@
           state[key] = control.value;
           redraw();
         });
-        return el("div", { class: "field" }, [el("label", { for: id, text: label }), control]);
+        var menu = codenameMenu(control, id + "-codename");
+        return el("div", { class: "field" }, [el("label", { for: id, text: label }), control, menu]);
       }
 
       // ---- colour
@@ -563,8 +630,9 @@
   }
 
   E.embeds = {
-    configure: function (value) {
+    configure: function (value, names) {
       config = value;
+      codenames = names || null;
     },
     register: function () {
       B.fieldRegistry.register("field_sff_embed", FieldEmbed);
