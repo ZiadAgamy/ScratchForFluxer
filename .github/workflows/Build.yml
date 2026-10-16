@@ -67,6 +67,25 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
+      # Pre-pull the base image with retries to absorb transient Docker Hub errors (502/5xx).
+      - name: Pre-pull base image with retries
+        run: |
+          BASE_IMAGE=python:3.12-slim
+          max=5
+          for i in $(seq 1 $max); do
+            echo "Attempt $i to pull $BASE_IMAGE"
+            if docker pull "$BASE_IMAGE"; then
+              echo "Pulled $BASE_IMAGE"
+              break
+            fi
+            if [ $i -eq $max ]; then
+              echo "Failed to pull $BASE_IMAGE after $max attempts" >&2
+              exit 1
+            fi
+            # exponential-ish backoff
+            sleep $((i * 5))
+          done
+
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
