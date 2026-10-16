@@ -937,3 +937,32 @@ details[open] > summary {
     transition: none;
   }
 }
+
+/* Codenames */
+.codename-example {
+  font-size: 1.05rem;
+  margin: 12px 0;
+}
+.table-wrap {
+  overflow-x: auto;
+  margin: 8px 0 16px;
+}
+.codename-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.codename-table th,
+.codename-table td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.codename-table th {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.codename-table td:first-child {
+  white-space: nowrap;
+}

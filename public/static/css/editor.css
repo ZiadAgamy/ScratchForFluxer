@@ -2209,3 +2209,10 @@ svg[display="none"] {
     order: -1;
   }
 }
+
+/* The "Insert a codename" drop-down under a text box. */
+.codename-select {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
