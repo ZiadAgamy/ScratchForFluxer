@@ -7,6 +7,8 @@
 .cat--bot { --cat: var(--cat-bot); }
 .cat--messages { --cat: var(--cat-messages); }
 .cat--info { --cat: var(--cat-info); }
+.cat--community { --cat: var(--cat-community); }
+.cat--threads { --cat: var(--cat-threads); }
 .cat--control { --cat: var(--cat-control); }
 .cat--operators { --cat: var(--cat-operators); }
 .cat--variables { --cat: var(--cat-variables); }
@@ -1107,5 +1109,182 @@
   .demo .ln,
   .demo-btn.is-hint {
     animation: none !important;
+  }
+}
+
+/* ---------- motion ----------
+   Soft blocks drift behind the hero, the key words shimmer, sections rise into view as you scroll, and the blocks of a
+   family pop in when you pick it. All of it stops for people who ask their system for less motion. */
+
+.hero-float {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fb {
+  --px: 0px;
+  --py: 0px;
+  --w: 4.6rem;
+  position: absolute;
+  inset-inline-start: var(--x);
+  top: var(--y);
+  width: var(--w);
+  height: calc(var(--w) * 0.42);
+  border-radius: 0.45rem;
+  background: var(--cat);
+  opacity: 0.17;
+  transform: translate3d(var(--px), var(--py), 0) rotate(var(--r, 0deg));
+  animation: drift var(--t, 14s) ease-in-out var(--d, 0s) infinite alternate;
+  transition: transform 0.5s ease-out;
+  will-change: transform;
+}
+
+/* the little tab that makes it look like a snap-together block */
+.fb::before {
+  content: "";
+  position: absolute;
+  top: -0.32rem;
+  inset-inline-start: 18%;
+  width: 28%;
+  height: 0.4rem;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: inherit;
+}
+
+.fb:nth-child(1) { --x: 4%;  --y: 12%; --r: -8deg; --t: 13s; --d: -2s; --w: 5.2rem; }
+.fb:nth-child(2) { --x: 18%; --y: 70%; --r: 6deg;  --t: 17s; --d: -6s; --w: 3.8rem; opacity: 0.13; }
+.fb:nth-child(3) { --x: 38%; --y: 6%;  --r: 4deg;  --t: 15s; --d: -4s; --w: 4.2rem; opacity: 0.14; }
+.fb:nth-child(4) { --x: 47%; --y: 82%; --r: -5deg; --t: 12s; --d: -9s; --w: 5.6rem; }
+.fb:nth-child(5) { --x: 68%; --y: 4%;  --r: 9deg;  --t: 18s; --d: -1s; --w: 4rem;   opacity: 0.12; }
+.fb:nth-child(6) { --x: 86%; --y: 24%; --r: -6deg; --t: 14s; --d: -7s; --w: 5rem; }
+.fb:nth-child(7) { --x: 92%; --y: 76%; --r: 5deg;  --t: 16s; --d: -3s; --w: 3.6rem; opacity: 0.13; }
+.fb:nth-child(8) { --x: 2%;  --y: 46%; --r: 3deg;  --t: 19s; --d: -8s; --w: 4.4rem; opacity: 0.11; }
+
+@keyframes drift {
+  from {
+    margin-top: 0;
+    margin-inline-start: 0;
+  }
+  to {
+    margin-top: -1.6rem;
+    margin-inline-start: 1.2rem;
+  }
+}
+
+.hl {
+  background: linear-gradient(100deg, var(--cat-messages), var(--cat-bot) 30%, var(--cat-info) 55%, var(--cat-community) 78%, var(--cat-events));
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shimmer 7s ease-in-out infinite alternate;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+
+/* sections rise into view (only when the script is running, so nothing is ever hidden without it) */
+.reveal-on [data-reveal] {
+  opacity: 0;
+  transform: translateY(1.4rem);
+  transition:
+    opacity 0.7s ease calc(var(--i, 0) * 90ms),
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) calc(var(--i, 0) * 90ms);
+}
+
+.reveal-on [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* the blocks of a family pop in one after another */
+.cat-panel:not([hidden]) .cat-blocks > * {
+  animation: pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+}
+
+.cat-panel:not([hidden]) .cat-blocks > :nth-child(2) { animation-delay: 70ms; }
+.cat-panel:not([hidden]) .cat-blocks > :nth-child(3) { animation-delay: 140ms; }
+.cat-panel:not([hidden]) .cat-blocks > :nth-child(4) { animation-delay: 210ms; }
+
+.cat-panel:not([hidden]) .cat-title {
+  animation: slide-in 0.45s ease-out backwards;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.9rem) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.8rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tab {
+  transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.tab:hover {
+  transform: translateY(-2px);
+}
+
+.cta .btn-primary {
+  animation: glow 3.2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(69 137 255 / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 0.55rem rgb(69 137 255 / 0.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fb,
+  .hl,
+  .cta .btn-primary,
+  .cat-panel .cat-blocks > *,
+  .cat-panel .cat-title {
+    animation: none !important;
+  }
+
+  .tab:hover {
+    transform: none;
+  }
+
+  .reveal-on [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 40rem) {
+  .fb:nth-child(n + 6) {
+    display: none;
   }
 }

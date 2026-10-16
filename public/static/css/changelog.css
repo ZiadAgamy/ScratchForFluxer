@@ -1,0 +1,171 @@
+/* Changelog page: a timeline with the date on the left and what changed on the right. */
+
+.changelog {
+  max-width: 56rem;
+  padding-block: clamp(2rem, 6vw, 4rem) clamp(3rem, 8vw, 5rem);
+}
+
+.changelog-head h1 {
+  font-size: var(--fs-3xl);
+}
+
+.changelog-head .lead {
+  margin-top: 0.75rem;
+  color: var(--text-2);
+  font-size: var(--fs-lg);
+}
+
+.changelog-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.4rem;
+}
+
+.changelog-jump a {
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.changelog-jump a:hover {
+  border-color: var(--accent-hi);
+  color: var(--text);
+}
+
+.timeline {
+  position: relative;
+  display: grid;
+  gap: 2.4rem;
+  margin: 2.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* the line down the left, with a dot for each date */
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0;
+  inset-inline-start: 0.42rem;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--accent-hi), var(--line) 70%, transparent);
+}
+
+.day {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  padding-inline-start: 2rem;
+  scroll-margin-top: 5rem;
+}
+
+.day::before {
+  content: "";
+  position: absolute;
+  top: 0.45rem;
+  inset-inline-start: 0;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 3px solid var(--bg-page);
+  border-radius: 50%;
+  background: var(--accent-hi);
+  box-shadow: 0 0 0 2px var(--accent-hi);
+}
+
+.day-date {
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--text);
+}
+
+.day-entries {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.entry {
+  padding: 1.1rem 1.25rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-raised);
+}
+
+.entry h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: var(--fs-xl);
+}
+
+.badge-latest {
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-solid);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+
+.entry-summary {
+  margin: 0.45rem 0 0.9rem;
+  color: var(--text-2);
+}
+
+.changes {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changes li {
+  display: grid;
+  grid-template-columns: 5.4rem minmax(0, 1fr);
+  gap: 0.7rem;
+  align-items: baseline;
+}
+
+.kind {
+  justify-self: start;
+  padding: 0.05rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid currentcolor;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.kind-new {
+  color: var(--ok);
+}
+
+.kind-improved {
+  color: var(--accent-hi);
+}
+
+.kind-fixed {
+  color: var(--warn);
+}
+
+.kind-docs {
+  color: var(--cat-bot);
+}
+
+.change-text {
+  color: var(--text);
+}
+
+@media (max-width: 36rem) {
+  .changes li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+  }
+}

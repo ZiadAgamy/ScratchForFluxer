@@ -2023,10 +2023,187 @@ svg[display="none"] {
   width: 2.4rem;
   height: 2rem;
   padding: 0;
-  border: 1px solid var(--line-strong);
+  border: 2px solid var(--line-strong);
   border-radius: var(--r-sm, 0.4rem);
-  background: var(--bg-field);
+  background: var(--swatch, var(--bg-field));
   cursor: pointer;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.35) inset;
+}
+
+.embed-picker[aria-expanded="true"] {
+  border-color: var(--accent-hi);
+}
+
+/* The colour picker: a shade square, a hue slider, number boxes, and the colours used lately. */
+.cp {
+  --cp-hue: hsl(215 100% 50%);
+  --cp-colour: #176dff;
+  display: grid;
+  gap: 0.75rem;
+  width: min(100%, 22rem);
+  margin-top: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md, 0.7rem);
+  background: var(--bg-raised);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+}
+
+.cp[hidden] {
+  display: none;
+}
+
+.cp-square {
+  position: relative;
+  height: 9.5rem;
+  border-radius: 0.7rem;
+  background:
+    linear-gradient(to top, #000, rgb(0 0 0 / 0)),
+    linear-gradient(to right, #fff, var(--cp-hue));
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.cp-square:focus-visible {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: 2px;
+}
+
+.cp-handle {
+  position: absolute;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: -0.575rem 0 0 -0.575rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--cp-colour);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 1px 5px rgb(0 0 0 / 0.5);
+  pointer-events: none;
+  transition: transform 0.12s ease;
+}
+
+.cp-square.is-dragging .cp-handle {
+  transform: scale(1.18);
+}
+
+.cp-hue {
+  width: 100%;
+  height: 0.85rem;
+  margin: 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.cp-hue::-webkit-slider-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--cp-hue);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 1px 5px rgb(0 0 0 / 0.5);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.cp-hue::-moz-range-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--cp-hue);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.55),
+    0 1px 5px rgb(0 0 0 / 0.5);
+}
+
+.cp-hue:focus-visible {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: 3px;
+}
+
+.cp-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.7fr);
+  gap: 0.45rem;
+}
+
+.cp-field {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+.cp-num,
+.cp-hex {
+  width: 100%;
+  padding-inline: 0.4rem;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.cp-hex[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.cp-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.cp-preview {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  background: var(--cp-colour);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.25) inset, 0 0 0 1px rgb(0 0 0 / 0.4);
+}
+
+.cp-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cp-recent[hidden] {
+  display: none;
+}
+
+.cp-recent-swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 0.25);
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+}
+
+.cp-recent-swatch:hover {
+  transform: scale(1.12);
+}
+
+.cp-recent-swatch:focus-visible {
+  outline: 2px solid var(--accent-hi);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-handle,
+  .cp-recent-swatch:hover {
+    transition: none;
+    transform: none;
+  }
 }
 
 .embed-hex {
@@ -2215,4 +2392,16 @@ svg[display="none"] {
   margin-top: 6px;
   font-size: 0.85rem;
   color: var(--text-2);
+}
+
+.cp-num {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.cp-num::-webkit-inner-spin-button,
+.cp-num::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
 }

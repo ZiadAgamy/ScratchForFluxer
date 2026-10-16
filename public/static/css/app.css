@@ -37,6 +37,8 @@
   --cat-bot: #5b9bff;
   --cat-messages: #a98bff;
   --cat-info: #4cc3e0;
+  --cat-community: #8fd14f;
+  --cat-threads: #d4a373;
   --cat-control: #f59a4d;
   --cat-operators: #52c987;
   --cat-variables: #f2735a;
@@ -647,6 +649,20 @@ samp {
   }
 }
 
+/* The changelog link is the least important one in the header: icon only on narrower screens, hidden on phones
+   (it is in the footer too). */
+@media (max-width: 64rem) {
+  .header-link-changelog span {
+    display: none;
+  }
+}
+
+@media (max-width: 34rem) {
+  .header-link-changelog {
+    display: none;
+  }
+}
+
 /* ---------- site footer ---------- */
 .site-footer {
   flex: none;
@@ -800,6 +816,12 @@ samp {
 }
 .blk--info {
   --blk: var(--cat-info);
+}
+.blk--community {
+  --blk: var(--cat-community);
+}
+.blk--threads {
+  --blk: var(--cat-threads);
 }
 .blk--control {
   --blk: var(--cat-control);
