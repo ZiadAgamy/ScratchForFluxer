@@ -413,10 +413,157 @@
     return kinds.indexOf("") !== -1 ? "variable" : "list";
   }
 
+  /* The flyout items for one toolbox entry (several when it gets one block per variable), or what it is waiting for. */
+  function blocksFor(entry) {
+    var block = { kind: "block", type: entry.type };
+    if (entry.inputs) block.inputs = entry.inputs;
+    if (!entry.variable) return { blocks: [block] };
+    var found = variablesOf(entry.variable.kinds);
+    if (entry.variable.each) {
+      return {
+        blocks: found.map(function (variable) {
+          var copy = Object.assign({}, block);
+          copy.fields = {};
+          copy.fields[entry.variable.field] = { id: variable.getId() };
+          return copy;
+        }),
+      };
+    }
+    if (!found.length) return { blocks: [], waiting: nounFor(entry.variable.kinds) };
+    block.fields = {};
+    block.fields[entry.variable.field] = { id: found[0].getId() };
+    return { blocks: [block] };
+  }
+
+  // ------------------------------------------------------------------------------------------------ searching
+  var filters = {}; /* what was typed into each family's search box */
+  var searchIndex = null;
+
+  /* Lower-case words with accents and punctuation out of the way, so "Ban" finds "ban" and "role's" finds "roles". */
+  function plain(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff ]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function indexOfSearch() {
+    if (searchIndex) return searchIndex;
+    searchIndex = {};
+    (payload.search || []).forEach(function (row) {
+      var family = categories[row.family];
+      searchIndex[row.type] = {
+        type: row.type,
+        family: row.family,
+        familyName: family ? family.name : row.family,
+        label: row.label,
+        title: plain(row.label),
+        text: plain(row.label + " " + row.tip + " " + (family ? family.name : "")),
+      };
+    });
+    return searchIndex;
+  }
+
+  /* Every typed word has to appear somewhere in the block's words, tooltip or family. */
+  function matches(type, query) {
+    var row = indexOfSearch()[type];
+    if (!row) return false;
+    return plain(query).split(" ").every(function (word) {
+      return !word || row.text.indexOf(word) !== -1;
+    });
+  }
+
+  /* Blocks that fit `query`, best first: ones whose own words start with it, then ones containing it, then the rest. */
+  function search(query, limit) {
+    var wanted = plain(query);
+    if (!wanted) return [];
+    var words = wanted.split(" ");
+    var scored = [];
+    Object.keys(indexOfSearch()).forEach(function (type) {
+      var row = indexOfSearch()[type];
+      if (!words.every(function (word) { return row.text.indexOf(word) !== -1; })) return;
+      var score = 3;
+      if (row.title.indexOf(wanted) === 0) score = 0;
+      else if (row.title.indexOf(wanted) !== -1) score = 1;
+      else if (words.every(function (word) { return row.title.indexOf(word) !== -1; })) score = 2;
+      scored.push({ row: row, score: score, order: scored.length });
+    });
+    scored.sort(function (a, b) {
+      return a.score - b.score || a.order - b.order;
+    });
+    return scored.slice(0, limit || 40).map(function (hit) {
+      return hit.row;
+    });
+  }
+
+  /* Filter one family's block list and redraw it. */
+  function setFilter(categoryId, query, silent) {
+    filters[categoryId] = query;
+    if (silent) return;
+    var flyout = workspace && workspace.getFlyout();
+    if (!flyout || !categories[categoryId]) return;
+    try {
+      flyout.show(flyoutContents(categoryId)); /* redraws just the list: no select events, so the search box keeps focus */
+    } catch (_) {
+      /* the list simply stays as it was */
+    }
+  }
+
+  /* Only the open family keeps what was typed; the rest start fresh next time. */
+  function resetFilters(keep) {
+    Object.keys(filters).forEach(function (key) {
+      if (key !== keep) filters[key] = "";
+    });
+  }
+
+  function selectFamily(id) {
+    var toolbox = workspace && workspace.getToolbox();
+    var item = toolbox && toolbox.getToolboxItemById("cat-" + id);
+    if (item) toolbox.setSelectedItem(item);
+  }
+
+  function closeFlyout() {
+    var toolbox = workspace && workspace.getToolbox();
+    if (toolbox) toolbox.clearSelection();
+  }
+
+  function currentFamily() {
+    var item = workspace && workspace.getToolbox() && workspace.getToolbox().getSelectedItem();
+    if (!item || !item.getId) return null;
+    var id = String(item.getId());
+    return id.indexOf("cat-") === 0 ? id.slice(4) : null;
+  }
+
+  /* Put a new block in the middle of what the person is looking at and select it. Returns "" or why it couldn't. */
+  function addBlock(type) {
+    var entry = null;
+    Object.keys(payload.toolbox).forEach(function (key) {
+      payload.toolbox[key].forEach(function (candidate) {
+        if (candidate.type === type) entry = candidate;
+      });
+    });
+    if (!entry) return "That block isn't available.";
+    var made = blocksFor(entry);
+    if (!made.blocks.length) return "Make a " + (made.waiting || "variable") + " first; this block needs one.";
+    var json = made.blocks[0];
+    if (lockedTypes.indexOf(type) !== -1 && workspace.getBlocksByType(type, false).length) return "You already have one of these.";
+    var view = workspace.getMetricsManager().getViewMetrics(true);
+    var spec = { type: json.type, x: Math.round(view.left + view.width / 2 - 60), y: Math.round(view.top + view.height / 3) };
+    if (json.inputs) spec.inputs = json.inputs;
+    if (json.fields) spec.fields = json.fields;
+    B.Events.setGroup(true);
+    try {
+      var block = B.serialization.blocks.append(spec, workspace);
+      block.select();
+    } catch (_) {
+      return "That block couldn't be added.";
+    } finally {
+      B.Events.setGroup(false);
+    }
+    return "";
+  }
+
   /* What the flyout of one category shows. Blocks that need a variable get one of the person's own; if there is none the
      block waits until they have made one (opening a flyout never makes variables up). */
   function flyoutContents(categoryId) {
-    var items = [];
+    var items = [{ kind: "sep", gap: 50 }]; /* room for the family's search box, which sits over the top of the list */
     var category = categories[categoryId];
     var own = null; /* the thing this category already has a "Make a ..." button for */
     if (category.button) {
@@ -427,31 +574,19 @@
       }
     }
     var waiting = { variable: false, list: false };
+    var query = filters[categoryId] || "";
     (payload.toolbox[categoryId] || []).forEach(function (entry) {
-      var block = { kind: "block", type: entry.type };
-      if (entry.inputs) block.inputs = entry.inputs;
-      if (!entry.variable) {
+      if (query && !matches(entry.type, query)) return;
+      var made = blocksFor(entry);
+      if (made.waiting) waiting[made.waiting] = true;
+      made.blocks.forEach(function (block) {
         items.push(block);
-        return;
-      }
-      var found = variablesOf(entry.variable.kinds);
-      if (entry.variable.each) {
-        found.forEach(function (variable) {
-          var copy = Object.assign({}, block);
-          copy.fields = {};
-          copy.fields[entry.variable.field] = { id: variable.getId() };
-          items.push(copy);
-        });
-        return;
-      }
-      if (!found.length) {
-        waiting[nounFor(entry.variable.kinds)] = true;
-        return;
-      }
-      block.fields = {};
-      block.fields[entry.variable.field] = { id: found[0].getId() };
-      items.push(block);
+      });
     });
+    if (query && !items.some(function (item) { return item.kind === "block"; }) && !Object.keys(waiting).some(function (k) { return waiting[k]; })) {
+      items.push({ kind: "label", text: "No block matches “" + query + "”" });
+    }
+    if (query) waiting = { variable: false, list: false }; /* a search shows what it found, not the hints */
     var needed = ["variable", "list"].filter(function (noun) {
       return waiting[noun];
     });
@@ -714,6 +849,26 @@
     canUndo: canUndo,
     canRedo: canRedo,
     makeVariable: makeVariable,
+    search: search,
+    addBlock: addBlock,
+    setFilter: setFilter,
+    filterOf: function (id) {
+      return filters[id] || "";
+    },
+    resetFilters: resetFilters,
+    closeFlyout: closeFlyout,
+    selectFamily: selectFamily,
+    flyoutShape: function () {
+      var flyout = workspace && workspace.getFlyout();
+      var svg = document.querySelector(".blocklyToolboxFlyout");
+      if (!flyout || !svg) return null;
+      var rect = svg.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: flyout.getWidth(), count: flyout.getWorkspace().getTopBlocks(false).length };
+    },
+    payload: function () {
+      return payload;
+    },
+    currentFamily: currentFamily,
     workspace: function () {
       return workspace;
     },
