@@ -165,3 +165,11 @@ class TestCards:
         from pathlib import Path
 
         assert (Path(__file__).resolve().parent.parent / "public" / "static" / "img" / "docs" / "embed-popup.png").exists()
+
+
+def test_the_codenames_section_lists_every_codename(page):
+    assert 'id="codenames"' in page and 'href="#codenames"' in page
+    for name, *_ in catalogue.CODENAME_LIST:
+        assert f"<code>${name}</code>" in page, name
+    for example in ("$varCoins", "$listShop", "$countShop", "$$authorID"):
+        assert example in page

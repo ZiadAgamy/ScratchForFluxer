@@ -158,3 +158,25 @@ def test_it_fits_a_phone(open_editor):
     box = page.locator("dialog.dialog-embed").bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= 390
     assert page.evaluate("() => document.querySelector('dialog.dialog-embed .dialog-body').scrollWidth <= document.querySelector('dialog.dialog-embed .dialog-body').clientWidth")
+
+
+def test_a_codename_can_be_inserted_from_the_pop_up(open_editor):
+    page = open_editor(state=with_embed())
+    press_card_options(page)
+    dialog = page.locator("dialog.dialog-embed")
+    dialog.locator("summary", has_text="Author and footer").click()
+    author = dialog.locator("input[id$='-author']")
+    author.fill("By ")
+    dialog.locator("select[id$='-author-codename']").select_option("$authorName")
+    expect(author).to_have_value("By $authorName")
+    dialog.locator("select[id$='-author-codename']").select_option("$authorID")
+    expect(author).to_have_value("By $authorName$authorID")
+    # the title and the text have one too, and what is inserted goes into the block's own text box
+    dialog.locator("input[id$='-title']").fill("")
+    dialog.locator("select[id$='-title-codename']").select_option("$messageID")
+    expect(dialog.locator("input[id$='-title']")).to_have_value("$messageID")
+    dialog.locator("button[type=submit]").click()
+    assert options_of(page)["author"] == "By $authorName$authorID"
+    wait_for_version(page, 1)
+    assert 'title=str(ctx.id)' in python_shown(page) or "ctx.id" in python_shown(page)
+    assert_quiet(page)
