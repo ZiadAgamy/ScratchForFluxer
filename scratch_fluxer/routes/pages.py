@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
-from .. import __version__, guide, store
+from .. import __version__, changelog, guide, store
 from ..compiler import RESERVED_NAMES, compile_workspace, default_workspace
 from ..config import get_settings
 from ..content import CATEGORIES, DEMO, HOW_IT_WORKS, SAFETY
@@ -67,6 +67,17 @@ async def docs(request: Request) -> Response:
             "site": get_settings().public_base_url or str(request.base_url).rstrip("/"),
             **_public(request, "/docs"),
         },
+    )
+
+
+@router.get("/changelog", include_in_schema=False)
+async def changelog_page(request: Request) -> Response:
+    """Everything new on the site, by date."""
+    await current_user(request)
+    return render(
+        request,
+        "changelog.html",
+        {"page": "changelog", "groups": changelog.by_date(), **_public(request, "/changelog")},
     )
 
 
