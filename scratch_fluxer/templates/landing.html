@@ -7,9 +7,14 @@
 
 {% block content %}
 <section class="hero">
+  <div class="hero-float" aria-hidden="true">
+    {%- for family in ["events", "messages", "community", "info", "threads", "operators", "lists", "data"] %}
+    <span class="fb cat--{{ family }}"></span>
+    {%- endfor %}
+  </div>
   <div class="container hero-grid">
     <div class="hero-copy">
-      <h1>Build a Fluxer bot by snapping blocks together.</h1>
+      <h1>Build a Fluxer bot by <span class="hl">snapping blocks</span> together.</h1>
       <p class="hero-lead">Drag blocks like you would in Scratch, read the real Python they write, then run your bot. Made for people learning the Fluxer bot API with fluxer.py.</p>
       <div class="hero-actions">
         {% if user %}
@@ -29,13 +34,13 @@
 
 <section class="band" id="how" aria-labelledby="how-title">
   <div class="container">
-    <div class="band-head">
+    <div class="band-head" data-reveal>
       <h2 id="how-title">Four steps from nothing to a running bot</h2>
       <p>Nothing to install. You build in the browser and this website runs the bot for you.</p>
     </div>
     <ol class="rail">
       {% for icon_name, title, text in how_it_works %}
-      <li class="rail-step">
+      <li class="rail-step" data-reveal>
         <span class="rail-mark" aria-hidden="true">{{ icon(icon_name) }}</span>
         <p class="rail-count">Step {{ loop.index }}</p>
         <h3>{{ title }}</h3>
@@ -48,11 +53,11 @@
 
 <section class="band band-raised" id="blocks" aria-labelledby="blocks-title">
   <div class="container">
-    <div class="band-head">
-      <h2 id="blocks-title">Nine kinds of blocks, from events to variables</h2>
+    <div class="band-head" data-reveal>
+      <h2 id="blocks-title">Eleven kinds of blocks, from events to channels and threads</h2>
       <p>Every family has its own colour, the same as in the editor. Pick one to see a few of its blocks.</p>
     </div>
-    <div class="explorer" data-explorer>
+    <div class="explorer" data-explorer data-reveal>
       <div class="tabs" data-role="tabs">
         {% for c in categories %}
         <button class="tab cat--{{ c.id }}" type="button" data-target="cat-{{ c.id }}"><span class="tab-chip" aria-hidden="true"></span><span>{{ c.name }}</span></button>
@@ -75,7 +80,7 @@
 
 <section class="band" id="run" aria-label="Files and the console">
   <div class="container features">
-    <div class="feature">
+    <div class="feature" data-reveal>
       <div class="feature-copy">
         <h2>Bring your own files</h2>
         <p>Upload JSON files, images and other assets, then pick them from a block's dropdown. Load a list of quotes from JSON, or reply with a picture.</p>
@@ -93,7 +98,7 @@
       </div>
     </div>
 
-    <div class="feature feature-flip">
+    <div class="feature feature-flip" data-reveal>
       <div class="feature-copy">
         <h2>See what your bot is doing</h2>
         <p>Run, restart and stop it from the editor. The console shows what your bot writes, plus warnings and errors, so you can find out why something didn't work.</p>
@@ -117,13 +122,13 @@
 
 <section class="band band-raised" id="safety" aria-labelledby="safety-title">
   <div class="container">
-    <div class="band-head">
+    <div class="band-head" data-reveal>
       <h2 id="safety-title">Safe to learn on</h2>
       <p>You are handing this site a bot token, so here is what happens to it, and to the rest of your data.</p>
     </div>
     <ul class="safety">
       {% for icon_name, title, text in safety %}
-      <li>
+      <li data-reveal>
         {{ icon(icon_name) }}
         <div><h3>{{ title }}</h3><p>{{ text }}</p></div>
       </li>
@@ -134,7 +139,7 @@
 </section>
 
 <section class="cta" aria-labelledby="cta-title">
-  <div class="container cta-inner">
+  <div class="container cta-inner" data-reveal>
     <h2 id="cta-title">Ready to build your first bot?</h2>
     <p>Log in, add your bot, and drag the first block. It takes a few minutes.</p>
     {% if user %}

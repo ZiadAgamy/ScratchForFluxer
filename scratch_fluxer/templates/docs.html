@@ -62,6 +62,8 @@
     <ul class="docs-nav-blocks">
       <li><a href="#blocks">How blocks work</a></li>
       <li><a href="#cards">Cards (embeds)</a></li>
+      <li><a href="#codenames">Codenames</a></li>
+      <li><a href="#community">Channels, roles, threads</a></li>
       {%- for f in families %}
       <li><a href="#blocks-{{ f.id }}" data-family="{{ f.id }}"><i class="docs-dot" style="--dot: var(--cat-{{ f.id }})"></i>{{ f.name }}</a></li>
       {%- endfor %}
@@ -217,7 +219,7 @@
       {{ shot("editor-tour", "The block editor with numbers on the block families, the workspace, the Run button, the Get code button, the Python code and the console.", "The editor. The numbers match the list below.") }}
 
       <ol class="legend">
-        <li><span class="badge">1</span><div><strong>Block families.</strong> Press one to open its blocks. There are nine, each with its own colour. See <a href="#blocks">Blocks</a>.</div></li>
+        <li><span class="badge">1</span><div><strong>Block families.</strong> Press one to open its blocks. There are eleven, each with its own colour. See <a href="#blocks">Blocks</a>.</div></li>
         <li><span class="badge">2</span><div><strong>Workspace.</strong> Drag blocks here and snap them together. Drag a block to the bin (or press <kbd>Delete</kbd>) to remove it. The sparkle button tidies everything up, and the arrows undo and redo.</div></li>
         <li><span class="badge">3</span><div><strong>Run, Restart, Stop.</strong> Start your bot, restart it with your latest blocks, or stop it. See <a href="#run">Run your bot</a>.</div></li>
         <li><span class="badge">4</span><div><strong>Get code.</strong> Download <code>main.py</code> or a folder with everything. See <a href="#download">Download main.py</a>.</div></li>
@@ -498,7 +500,7 @@ sudo journalctl -u mybot -f{% endcall %}
       {{ shot("embed-popup", "The Card options window: title, text and colour on the left, a preview of the card on the right.", "The Card options window. The preview is on the right.", width=928, height=636, class="shot-narrow") }}
       <ul class="checks">
         <li>{{ icon("check-circle") }}<span><strong>Title</strong> and <strong>Text</strong>. Type them here, or plug another block (like <em>author name</em>) into the block's own sockets. If a block is plugged in, the window tells you.</span></li>
-        <li>{{ icon("check-circle") }}<span><strong>Colour of the edge</strong>: pick one of nine, or any colour with the colour picker or a code like <code>#ff8800</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Colour of the edge</strong>: pick one of nine, or press the small coloured square to open the colour picker (next to the picture below), or type a code like <code>#ff8800</code>.</span></li>
         <li>{{ icon("check-circle") }}<span><strong>Link on the title</strong>: people who click the title go to that address. It must start with <code>https://</code>.</span></li>
         <li>{{ icon("check-circle") }}<span><strong>Big picture</strong> (under the text) and <strong>small picture</strong> (the thumbnail, top right): use a web address, or one of the pictures you uploaded on the Files tab. Uploaded pictures work in <em>reply with embed</em> and <em>send embed</em>, not in the webhook block.</span></li>
         <li>{{ icon("check-circle") }}<span><strong>Author</strong> (small name above the title, with an optional picture) and <strong>footer</strong> (small text at the bottom, with an optional picture).</span></li>
@@ -506,6 +508,119 @@ sudo journalctl -u mybot -f{% endcall %}
       </ul>
       {% call callout("note", "The preview is close, not exact.") %}Pictures from a web address are not shown in the preview (the editor only loads its own files), but they are sent. Fluxer draws the final card in its own style.{% endcall %}
       <p>Press <strong>Reset</strong> in the window to go back to a plain card. Cards you made before this window existed keep their colour.</p>
+
+      <h3 id="colour-picker">The colour picker</h3>
+      <p>Press the coloured square under <em>Colour of the edge</em>. A picker opens that works the same in every browser:</p>
+      {{ shot("colour-picker", "The colour picker: a square for the shade, a rainbow slider, boxes for red, green, blue and the colour code, and a button to pick a colour from the screen.", "The colour picker.", width=352, height=333, class="shot-narrow") }}
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>The big square</strong> is the shade. Click or drag in it: left is pale, right is strong, up is bright, down is dark. With the keyboard, use the arrow keys (hold Shift for bigger steps).</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>The rainbow slider</strong> chooses the basic colour (red, green, blue and everything between).</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>R, G, B and Hex</strong> are the same colour as numbers (0 to 255) and as a code. Type in any of them and the others follow.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Pick from screen</strong> lets you click any colour you can see on your screen. It shows up only in browsers that have an eyedropper, like Chrome and Edge.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>The small circles at the bottom</strong> are the colours you used lately. Press one to use it again.</span></li>
+      </ul>
+    </section>
+
+    <section class="doc" id="codenames" aria-labelledby="h-codenames">
+      <h2 id="h-codenames">Codenames: put a value inside your text</h2>
+      <p>Say you want a message like <em>“Coins Balance: 500”</em>, where 500 is whatever is in your <strong>Coins</strong> variable. Normally you would need a <strong>join</strong> block with three pieces. With a <strong>codename</strong> you just write it in the text:</p>
+      <p class="codename-example"><code>Coins Balance: $varCoins</code></p>
+      <p>A codename is a <code>$</code> followed by a short word. When your bot runs, the codename is replaced by the real value. It works in every text box (the ones inside <em>reply</em>, <em>send</em>, <em>write to the console</em>, the title and text of a card, and so on). The <strong>Author</strong> and <strong>Footer</strong> in the Card options window understand them too.</p>
+      <p class="try"><strong>Try it:</strong> make a variable called <strong>Coins</strong>, put <em>set Coins to 500</em> in a command, then <em>reply with</em> the text <code>You have $varCoins coins</code>. Type <code>$</code> codenames by hand, or use the <strong>Insert a codename…</strong> menu in the Card options window.</p>
+
+      <h3>Your variables and lists</h3>
+      <p>Write <code>var</code>, <code>list</code> or <code>count</code> and then the name of your variable or list. Capital letters, spaces and <code>_</code> don't matter, so <code>$varCoinsBalance</code> finds a variable called <em>Coins Balance</em>.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><code>$varCoins</code> is the value of the variable <strong>Coins</strong>.</span></li>
+        <li>{{ icon("check-circle") }}<span><code>$listShop</code> is every item of the list <strong>Shop</strong>, with commas between them.</span></li>
+        <li>{{ icon("check-circle") }}<span><code>$countShop</code> is how many items the list <strong>Shop</strong> has.</span></li>
+      </ul>
+
+      <h3>Values from the message, the member and the bot</h3>
+      <p>These are the same as the blocks with the same words (<em>author ID</em>, <em>message ID</em> ...), so they work in the same places. If you use one where it can't work, for example <code>$messageID</code> in a “member joins” event, the editor tells you.</p>
+      {% for group in codename_groups %}
+      <h4>{{ group.name }}</h4>
+      <div class="table-wrap">
+        <table class="codename-table">
+          <thead><tr><th scope="col">Write</th><th scope="col">You get</th><th scope="col">Works in</th></tr></thead>
+          <tbody>
+            {%- for item in group["items"] %}
+            <tr><td><code>{{ item.code }}</code></td><td>{{ item.what }}</td><td>{{ item.where }}</td></tr>
+            {%- endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+
+      <h3>Good to know</h3>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>Letters right after a codename?</strong> Use curly brackets: <code>${authorID}abc</code>. This also lets you use a name with spaces: <code>${var Coins Balance}</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Want a real dollar sign?</strong> Most of the time just type it: <code>It costs $5</code> stays as it is. If a word follows the <code>$</code>, write two: <code>$$authorID</code> shows exactly <code>$authorID</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Misspelled a codename?</strong> It stays as you typed it and the editor shows a warning, so a typo is easy to spot.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Blocks still work.</strong> A codename is only a shortcut. If you plug a block into a socket, it keeps working exactly as before.</span></li>
+      </ul>
+    </section>
+
+    <section class="doc" id="community" aria-labelledby="h-community">
+      <h2 id="h-community">Channels, roles, threads and forums</h2>
+      <p>Until now your bot could talk. With the <strong>Channels and roles</strong> and <strong>Threads and forums</strong> families it can also <strong>build</strong>: make channels and roles, start threads, and publish posts. Each block is listed with the others below. This part explains how to use them well.</p>
+
+      {% call callout("warn", "These blocks change your community for real.") %}Deleting a channel removes everything in it, and there is no undo. Put them inside an <strong>if</strong> with <strong>author has the role …</strong>, so only your staff can use the command. The editor warns you when a block like this has no check.{% endcall %}
+
+      <h3>Before you start: permissions</h3>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span>For channels and tags the bot needs the <strong>Manage Channels</strong> permission. For roles it needs <strong>Manage Roles</strong>, and its own role must be <em>above</em> any role it makes or deletes.</span></li>
+        <li>{{ icon("check-circle") }}<span>For threads it needs permission to <strong>create threads</strong>. For forum posts it needs to be allowed to <strong>send messages</strong> in that channel.</span></li>
+        <li>{{ icon("check-circle") }}<span>If something is missing, the bot doesn't crash. It writes one clear line in the console, like <em>“Channel not made. Check that the bot has the Manage Channels permission”</em>.</span></li>
+      </ul>
+
+      <h3>Where do I get an ID?</h3>
+      <p>In Fluxer, turn on developer mode in your settings, then right-click a channel, role or message and choose <strong>Copy ID</strong>. A block that has just made something also gives you its ID, so you rarely need to copy one by hand:</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>ID of the channel I just made</strong> (or <code>$newChannelID</code> inside a text)</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>ID of the role I just made</strong> (or <code>$newRoleID</code>)</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>ID of the thread or post I just made</strong> (or <code>$newThreadID</code>)</span></li>
+      </ul>
+
+      <h3>Channels</h3>
+      <p>The <strong>create a … channel</strong> block has a menu with six kinds:</p>
+      <div class="table-wrap">
+        <table class="codename-table">
+          <thead><tr><th scope="col">Kind</th><th scope="col">What it is</th><th scope="col">The extra box</th></tr></thead>
+          <tbody>
+            <tr><td>text</td><td>A normal channel for messages</td><td>The topic (a short description)</td></tr>
+            <tr><td>voice</td><td>A channel to talk in</td><td>Not used</td></tr>
+            <tr><td>announcement</td><td>A channel for news that other communities can follow</td><td>The topic</td></tr>
+            <tr><td>forum</td><td>A channel where every conversation is a post with a title</td><td>The topic, shown at the top of the forum</td></tr>
+            <tr><td>media</td><td>Like a forum, made for pictures and videos</td><td>The topic</td></tr>
+            <tr><td>link</td><td>A button in the channel list that opens a web page</td><td>The web address. It is required and must start with <code>https://</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Leave <em>inside the category with ID</em> empty to put the channel at the top, or paste the ID of a category to put it there. Channel names are written in lower case with dashes, so <em>My News</em> becomes <em>my-news</em>.</p>
+      <p class="try"><strong>Try it: a ticket channel.</strong> A command <code>!ticket</code> that runs <strong>create a text channel named</strong> <code>ticket-$authorName</code>, then <strong>send</strong> <code>Hi $authorMention, tell us how we can help!</code> <strong>to channel</strong> <code>$newChannelID</code>.</p>
+
+      <h3>Roles</h3>
+      <p><strong>create a role named …</strong> makes a role with a colour (the same colours as cards, or none), and two yes/no choices: <em>shown apart from others</em> (people with this role are listed in their own group) and <em>anyone can mention it</em>. The new role has no special permissions. Give it to someone with the block you already know, <strong>give the role … to the person …</strong>, using <strong>ID of the role I just made</strong>.</p>
+
+      <h3>Threads</h3>
+      <p>A thread is a small side conversation under a channel. <strong>start a public/private thread named …</strong> starts one in a text or announcement channel (leave the channel empty to use the channel where the command was written). A <em>public</em> thread can be seen by everyone who sees the channel. A <em>private</em> thread only by the people in it: to bring someone in, <strong>mention</strong> them in a message inside the thread.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>start a thread named … from this message</strong> attaches the thread to the message that started the command. A message can have only one thread.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>send … in the thread with ID</strong> writes inside it. A thread's ID works like a channel's ID, so the <em>send … to channel</em> block works too.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>close / reopen / lock / unlock the thread</strong>. Closing hides it from the list but anyone can reopen it by writing. Locking lets only moderators write.</span></li>
+      </ul>
+      <p class="try"><strong>Try it:</strong> <code>!help</code> starts a public thread named <code>Help for $authorName</code> and writes <code>Tell us what happened, $authorMention</code> in it with the thread ID.</p>
+
+      <h3>Forum and media posts</h3>
+      <p>In a forum or media channel every conversation is a <strong>post</strong>. <strong>post in the forum or media channel …</strong> publishes one with a title and a first message. There are three versions of the block:</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span>The plain one: title, text and tags.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>… and the picture</strong>: pick a picture you uploaded on the Files tab. The post opens with your text and the picture follows it right away.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>… and the picture at</strong>: a web address (<code>https://…</code>). The picture is shown inside the first message.</span></li>
+      </ul>
+      <p><strong>Tags</strong> are the little labels a forum has (like <em>Help</em> or <em>Bug</em>). Write the names of the tags you want, separated by commas, in the <em>and tags</em> box: <code>Help, Bug</code>. Capital letters don't matter, a post can have up to five, and the tags must already exist. A name that doesn't exist is skipped, and the console says which. To see what a channel has, use the <strong>tags of the forum or media channel</strong> block (it gives a list). To change the tags, use <strong>add the tag …</strong> and <strong>remove the tag …</strong>.</p>
+      {% call callout("note", "A block says it can't make or use a forum or media channel?") %}Check that you copied the ID of a forum or media channel (not a normal text channel), and that the bot is allowed to post there. The console tells you which block failed.{% endcall %}
     </section>
 
     <div id="blocks-reference">

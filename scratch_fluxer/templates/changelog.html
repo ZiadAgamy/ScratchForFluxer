@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon, social %}
+{% block title %}Changelog - {{ app_name }}{% endblock %}
+{% block description %}Everything new in {{ app_name }}, by date: new blocks, improvements, fixes and guide updates.{% endblock %}
+{% block meta %}{{ social(app_name, "Changelog - " ~ app_name, "Everything new in " ~ app_name ~ ", by date: new blocks, improvements, fixes and guide updates.", og_image, canonical) }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ static('css/changelog.css') }}">{% endblock %}
+
+{% block content %}
+<article class="container changelog">
+  <header class="changelog-head">
+    <h1>Changelog</h1>
+    <p class="lead">Everything new in {{ app_name }}, newest first. Blocks you find here are explained in the <a href="/docs">guide</a>.</p>
+    <nav class="changelog-jump" aria-label="Jump to a date">
+      {%- for group in groups %}
+      <a href="#d-{{ group.day }}">{{ group.pretty }}</a>
+      {%- endfor %}
+    </nav>
+  </header>
+
+  <ol class="timeline">
+    {% for group in groups %}
+    <li class="day" id="d-{{ group.day }}">
+      <h2 class="day-date"><time datetime="{{ group.day }}">{{ group.pretty }}</time></h2>
+      <div class="day-entries">
+        {% for entry in group.entries %}
+        <section class="entry" aria-labelledby="e-{{ group.day }}-{{ loop.index }}">
+          <h3 id="e-{{ group.day }}-{{ loop.index }}">{{ entry.title }}{% if entry.latest %} <span class="badge-latest">Latest</span>{% endif %}</h3>
+          <p class="entry-summary">{{ entry.summary }}</p>
+          <ul class="changes">
+            {% for change in entry.changes %}
+            <li><span class="kind kind-{{ change.kind }}">{{ change.label }}</span><span class="change-text">{{ change.text }}</span></li>
+            {% endfor %}
+          </ul>
+        </section>
+        {% endfor %}
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</article>
+{% endblock %}
