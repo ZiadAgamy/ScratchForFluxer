@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from functools import lru_cache
 from typing import Any
 
@@ -17,17 +18,29 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from .. import catalogue, export, store
+from .. import catalogue, export, fluxer_api, store
 from .. import workspace as ws_lib
 from ..config import Settings, get_settings
 from ..db import db_run
-from ..deps import AuthUser, read_body, render, require_csrf, require_json_content, require_user, user_rate_limit
+from ..deps import (
+    AuthUser,
+    get_vault,
+    read_body,
+    render,
+    require_csrf,
+    require_json_content,
+    require_user,
+    user_rate_limit,
+)
 from ..models import Asset, Bot, utcnow
 from .bots import bot_json, bot_view, get_owned_bot
 
 router = APIRouter()
 save_limit = user_rate_limit("workspace-save", 90, 60)
 export_limit = user_rate_limit("export", 20, 60)
+emoji_limit = user_rate_limit("emoji-list", 30, 60)
+_EMOJI_KEEP = 60.0  # seconds a bot's emoji list is reused, so opening the picker again doesn't ask Fluxer again
+_emoji_cache: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
 
 class Conflict(Exception):
@@ -95,6 +108,36 @@ def _load(db: Session, user_id: str, bot_id: str) -> dict[str, Any]:
 @router.get("/api/bots/{bot_id}/workspace")
 async def load_workspace(bot_id: str, user: AuthUser = Depends(require_user)) -> JSONResponse:
     return JSONResponse(await db_run(_load, user.id, bot_id))
+
+
+def _bot_token(db: Session, user_id: str, bot_id: str) -> str:
+    bot = get_owned_bot(db, user_id, bot_id)
+    try:
+        return get_vault().decrypt(bot.token_ciphertext)
+    except Exception:  # noqa: BLE001 - an unreadable token is the person's to fix, never a crash
+        raise HTTPException(
+            status_code=409, detail="The saved token can't be read any more. Open My bots and paste the token again."
+        ) from None
+
+
+@router.get("/api/bots/{bot_id}/emojis", dependencies=[Depends(emoji_limit)])
+async def community_emojis(
+    bot_id: str, user: AuthUser = Depends(require_user), settings: Settings = Depends(get_settings)
+) -> JSONResponse:
+    """The custom emojis of the communities this bot is in, for the emoji picker. The token never leaves the server."""
+    token = await db_run(_bot_token, user.id, bot_id)
+    key = f"{bot_id}:{user.id}"
+    cached = _emoji_cache.get(key)
+    if cached and time.monotonic() - cached[0] < _EMOJI_KEEP:
+        return JSONResponse({"communities": cached[1], "media": settings.fluxer_media_url})
+    try:
+        found = await fluxer_api.fetch_bot_emojis(settings, token)
+    except fluxer_api.FluxerError as exc:
+        raise HTTPException(status_code=502, detail=exc.user_message) from None
+    if len(_emoji_cache) > 200:
+        _emoji_cache.clear()
+    _emoji_cache[key] = (time.monotonic(), found)
+    return JSONResponse({"communities": found, "media": settings.fluxer_media_url})
 
 
 def _canonical(value: Any) -> str:
