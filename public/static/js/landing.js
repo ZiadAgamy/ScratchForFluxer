@@ -553,6 +553,67 @@
     select(0, false);
   }
 
+
+  /* ------------------------------------------------------------------ motion: sections rise into view, hero blocks follow the pointer */
+
+  function initMotion() {
+    if (reduceMotion) return;
+    var items = Array.prototype.slice.call(document.querySelectorAll("[data-reveal]"));
+    if (items.length && "IntersectionObserver" in window) {
+      document.documentElement.classList.add("reveal-on");
+      /* neighbours that appear together come in one after another */
+      var groups = new Map();
+      items.forEach(function (item) {
+        var parent = item.parentElement;
+        var index = groups.get(parent) || 0;
+        groups.set(parent, index + 1);
+        item.style.setProperty("--i", String(Math.min(index, 5)));
+      });
+      var watcher = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add("is-in");
+            watcher.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.12, rootMargin: "0px 0px -6% 0px" }
+      );
+      items.forEach(function (item) {
+        watcher.observe(item);
+      });
+    }
+
+    var hero = document.querySelector(".hero");
+    var floaters = Array.prototype.slice.call(document.querySelectorAll(".hero-float .fb"));
+    if (hero && floaters.length && window.matchMedia && window.matchMedia("(pointer: fine)").matches) {
+      var frame = 0;
+      var target = { x: 0, y: 0 };
+      hero.addEventListener("pointermove", function (event) {
+        var box = hero.getBoundingClientRect();
+        target.x = (event.clientX - box.left) / box.width - 0.5;
+        target.y = (event.clientY - box.top) / box.height - 0.5;
+        if (frame) return;
+        frame = window.requestAnimationFrame(function () {
+          frame = 0;
+          floaters.forEach(function (node, i) {
+            var depth = 10 + (i % 4) * 9;
+            node.style.setProperty("--px", (target.x * depth).toFixed(1) + "px");
+            node.style.setProperty("--py", (target.y * depth).toFixed(1) + "px");
+          });
+        });
+      });
+      hero.addEventListener("pointerleave", function () {
+        floaters.forEach(function (node) {
+          node.style.setProperty("--px", "0px");
+          node.style.setProperty("--py", "0px");
+        });
+      });
+    }
+  }
+
+  initMotion();
+
   var demo = document.getElementById("demo");
   if (demo) initDemo(demo);
   var explorer = document.querySelector("[data-explorer]");
