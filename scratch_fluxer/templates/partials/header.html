@@ -16,6 +16,7 @@
 
     <div class="header-actions">
       <a class="header-link{% if page == 'docs' %} is-current{% endif %}" href="/docs" aria-label="Docs"{% if page == 'docs' %} aria-current="page"{% endif %}>{{ icon("book-open-text") }}<span>Docs</span></a>
+      <a class="header-link header-link-changelog{% if page == 'changelog' %} is-current{% endif %}" href="/changelog" aria-label="Changelog"{% if page == 'changelog' %} aria-current="page"{% endif %}>{{ icon("clock-counter-clockwise") }}<span>Changelog</span></a>
       {% if user %}
         <a class="btn btn-secondary btn-sm" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
         <details class="menu">
