@@ -34,7 +34,9 @@ def press_card_options(page) -> None:
 
 
 def options_of(page) -> dict:
-    return json.loads(page.evaluate("() => window.sffEditor.blocks.workspace().getBlockById('emb1').getFieldValue('OPTIONS')"))
+    return json.loads(
+        page.evaluate("() => window.sffEditor.blocks.workspace().getBlockById('emb1').getFieldValue('OPTIONS')")
+    )
 
 
 def test_the_block_has_a_card_options_button_and_no_colour_menu(open_editor):
@@ -157,7 +159,9 @@ def test_it_fits_a_phone(open_editor):
     expect(page.locator("dialog.dialog-embed")).to_be_visible()
     box = page.locator("dialog.dialog-embed").bounding_box()
     assert box["x"] >= 0 and box["x"] + box["width"] <= 390
-    assert page.evaluate("() => document.querySelector('dialog.dialog-embed .dialog-body').scrollWidth <= document.querySelector('dialog.dialog-embed .dialog-body').clientWidth")
+    assert page.evaluate(
+        "() => document.querySelector('dialog.dialog-embed .dialog-body').scrollWidth <= document.querySelector('dialog.dialog-embed .dialog-body').clientWidth"
+    )
 
 
 def test_a_codename_can_be_inserted_from_the_pop_up(open_editor):
@@ -178,7 +182,7 @@ def test_a_codename_can_be_inserted_from_the_pop_up(open_editor):
     dialog.locator("button[type=submit]").click()
     assert options_of(page)["author"] == "By $authorName$authorID"
     wait_for_version(page, 1)
-    assert 'title=str(ctx.id)' in python_shown(page) or "ctx.id" in python_shown(page)
+    assert "title=str(ctx.id)" in python_shown(page) or "ctx.id" in python_shown(page)
     assert_quiet(page)
 
 

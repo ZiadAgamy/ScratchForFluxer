@@ -151,7 +151,7 @@ class TestBlocklyDefinitions:
         blob = json.dumps(payload)
         assert len(payload["blocks"]) == len(catalogue.BLOCKS)
         assert "FLUXER_TOKEN" not in blob
-        assert len(blob) < 90_000
+        assert len(blob) < 110_000
 
 
 class TestColours:
@@ -209,3 +209,15 @@ class TestLandingExamples:
     def test_a_value_for_something_the_block_does_not_have_is_an_error(self):
         with pytest.raises(ValueError, match="no TXT"):
             catalogue.example("sff_reply", TXT="oops")
+
+
+class TestSearchIndex:
+    def test_every_block_in_a_flyout_can_be_found(self):
+        rows = catalogue.search_index()
+        assert {row["type"] for row in rows} == {t for key in catalogue.CATEGORY_ORDER for t in catalogue.TOOLBOX[key]}
+        for row in rows:
+            assert row["family"] in catalogue.CATEGORIES and row["label"] and row["tip"]
+            assert "_" not in row["label"].split()  # sockets show as an ellipsis
+
+    def test_the_payload_carries_it(self):
+        assert catalogue.browser_payload()["search"] == catalogue.search_index()

@@ -48,12 +48,22 @@ class TestWhatIsKept:
 
     @pytest.mark.parametrize(
         "address",
-        ["javascript:alert(1)", "data:text/html,x", "ftp://example.com/a", "https://exa mple.com", "https://x.com/'a", "//x.com", "https://x.com/\"", "https://x.com/a\\b", "file:///etc/passwd"],
+        [
+            "javascript:alert(1)",
+            "data:text/html,x",
+            "ftp://example.com/a",
+            "https://exa mple.com",
+            "https://x.com/'a",
+            "//x.com",
+            'https://x.com/"',
+            "https://x.com/a\\b",
+            "file:///etc/passwd",
+        ],
     )
     def test_only_plain_web_addresses_are_kept(self, address):
-        assert embeds.parse(json.dumps({"url": address, "thumbnail": address, "author": "A", "author_icon": address})) == {
-            "author": "A"
-        }
+        assert embeds.parse(
+            json.dumps({"url": address, "thumbnail": address, "author": "A", "author_icon": address})
+        ) == {"author": "A"}
 
     def test_a_web_address_that_is_too_long_is_dropped(self):
         assert embeds.parse(json.dumps({"url": "https://x.com/" + "a" * 600})) == {}
@@ -130,8 +140,10 @@ class TestInTheBlocks:
         codecheck.check(code)  # raises when anything in it is not allowed
 
     def test_an_uploaded_picture_is_sent_with_the_message_under_a_plain_name(self):
-        result = compiled(card(options={"image": "file:My Banner (1).png", "thumbnail": "file:icon.jpg"}),
-                          assets={"My Banner (1).png": "image", "icon.jpg": "image"})
+        result = compiled(
+            card(options={"image": "file:My Banner (1).png", "thumbnail": "file:icon.jpg"}),
+            assets={"My Banner (1).png": "image", "icon.jpg": "image"},
+        )
         assert not result.diagnostics, result.diagnostics
         code = result.code
         assert 'embed.set_image(url="attachment://image.png")' in code
@@ -149,13 +161,16 @@ class TestInTheBlocks:
         assert any("gone.png" in d.message for d in result.diagnostics if d.level == "error")
 
     def test_a_webhook_cannot_send_a_file(self):
-        result = compiled(card("sff_webhook_embed", options={"image": "file:a.png", "thumbnail": "https://x.com/t.png"}), assets={"a.png": "image"})
+        result = compiled(
+            card("sff_webhook_embed", options={"image": "file:a.png", "thumbnail": "https://x.com/t.png"}),
+            assets={"a.png": "image"},
+        )
         assert "attachment://" not in result.code and "fluxer.File" not in result.code
         assert 'embed.set_thumbnail(url="https://x.com/t.png")' in result.code
         assert "await send_webhook(" in result.code
 
     def test_a_forged_value_never_reaches_the_python(self):
-        evil = {"url": 'https://x.com/");import os#', "author": '"); os.system("x', "footer": "\\\"\\n"}
+        evil = {"url": 'https://x.com/");import os#', "author": '"); os.system("x', "footer": '\\"\\n'}
         result = compiled(card(options=evil))
         assert "os.system" not in result.code or 'name="\\"); os.system(\\"x"' in result.code
         ast.parse(result.code)

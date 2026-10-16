@@ -44,7 +44,7 @@ class TestThePage:
         assert [link for link in links if link not in ids] == []
 
     def test_every_picture_exists(self, page):
-        names = set(re.findall(r'/static/img/docs/([\w-]+\.png)', page))
+        names = set(re.findall(r"/static/img/docs/([\w-]+\.png)", page))
         assert names, "the guide shows no pictures"
         assert [name for name in names if not (IMAGES / name).is_file()] == []
 
@@ -89,7 +89,10 @@ class TestWhatItSays:
         assert "Never put the token inside main.py" in page
 
     def test_the_invite_link_is_the_one_fluxer_documents(self, page):
-        assert "https://fluxer.app/oauth2/authorize?client_id=YOUR_APPLICATION_ID&amp;scope=bot&amp;permissions=68608" in page
+        assert (
+            "https://fluxer.app/oauth2/authorize?client_id=YOUR_APPLICATION_ID&amp;scope=bot&amp;permissions=68608"
+            in page
+        )
 
     def test_it_does_not_name_the_old_hosting_service(self, page):
         assert "wispbyte" not in page.lower()
@@ -164,7 +167,9 @@ class TestCards:
     def test_the_picture_of_it_exists(self):
         from pathlib import Path
 
-        assert (Path(__file__).resolve().parent.parent / "public" / "static" / "img" / "docs" / "embed-popup.png").exists()
+        assert (
+            Path(__file__).resolve().parent.parent / "public" / "static" / "img" / "docs" / "embed-popup.png"
+        ).exists()
 
 
 def test_the_codenames_section_lists_every_codename(page):
@@ -199,3 +204,8 @@ class TestChannelsAndForums:
 
     def test_there_are_eleven_families_in_the_reference(self, page):
         assert len(re.findall(r'<section class="doc family"', page)) == 11
+
+
+def test_the_guide_explains_block_search(page):
+    assert 'id="find-blocks"' in page and 'href="#find-blocks"' in page
+    assert "Ctrl" in page and "search box inside each family" in page

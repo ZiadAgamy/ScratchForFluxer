@@ -29,7 +29,7 @@ def test_entries_are_newest_first_and_only_the_first_is_latest():
 
 
 def test_dates_are_written_out():
-    assert changelog.entries()[0]["pretty"] == "16 October 2026"
+    assert changelog.entries()[0]["pretty"] == "17 October 2026"
     assert re.fullmatch(r"\d{1,2} [A-Z][a-z]+ \d{4}", changelog.entries()[-1]["pretty"])
 
 
