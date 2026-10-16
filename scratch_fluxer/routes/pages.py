@@ -59,6 +59,7 @@ async def docs(request: Request) -> Response:
         {
             "page": "docs",
             "families": families,
+            "codename_groups": guide.codename_groups(),
             "block_total": sum(len(family["blocks"]) for family in families),
             "limits": store.limits(settings),
             "sample_code": compile_workspace(default_workspace()).code.rstrip(),
