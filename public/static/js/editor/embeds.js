@@ -187,7 +187,7 @@
     var title = state.title.editable ? state.titleText : "‹a block fills this›";
     if (title) main.appendChild(el("div", { class: "embed-title" + (o.url ? " embed-title-link" : ""), text: title }));
     var text = state.text.editable ? state.textText : "‹a block fills this›";
-    if (text) main.appendChild(el("div", { class: "embed-text", text: text }));
+    if (text) main.appendChild(el("div", { class: "embed-text" }, E.emojis ? E.emojis.nodes(text) : [text]));
     if (o.image) main.appendChild(picture(o.image, "embed-image", mode));
     var footer = [];
     if (o.footer) footer.push(o.footer);
@@ -329,7 +329,14 @@
           redraw();
         });
         var menu = codenameMenu(control, id + "-codename");
-        return el("div", { class: "field" }, [el("label", { for: id, text: label }), control, menu]);
+        var picker = null;
+        if (which === "text" && E.emojis) picker = E.emojis.attach(control); /* the emoji picker is for the card's text only */
+        return el("div", { class: "field" }, [
+          el("label", { for: id, text: label }),
+          control,
+          menu || picker ? el("div", { class: "embed-text-tools" }, [menu, picker ? picker.button : null]) : null,
+          picker ? picker.panel : null,
+        ]);
       }
 
       // ---- colour
