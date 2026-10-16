@@ -1527,6 +1527,17 @@ FLYOUT_BUTTONS = {
 }
 
 
+def search_index() -> list[dict[str, str]]:
+    """What the editor's block search looks through: every block in a flyout, with its words, family and tooltip."""
+    found = []
+    for key in CATEGORY_ORDER:
+        for type_ in TOOLBOX[key]:
+            spec = BLOCKS[type_]
+            words = [part if isinstance(part, str) else "…" for line in spec["lines"] for part in line]
+            found.append({"type": type_, "family": key, "label": " ".join(words), "tip": spec["tooltip"]})
+    return found
+
+
 def browser_payload() -> dict[str, Any]:
     """Everything the editor needs to know about the blocks. Contains no secrets and is the same for everyone."""
     return {
@@ -1538,6 +1549,7 @@ def browser_payload() -> dict[str, Any]:
         "locked": list(LOCKED_TYPES),
         "embed": embeds.browser_config(),
         "codenames": codenames_for_browser(),
+        "search": search_index(),
     }
 
 

@@ -14,6 +14,22 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-10-17",
+        "title": "Search for blocks",
+        "summary": "Find the block you want by typing its name instead of opening family after family.",
+        "changes": [
+            (
+                "new",
+                "A search box at the top of the workspace, next to undo and redo. Type a word, press Enter, and the block is added in the middle of your workspace. Press / or Ctrl+K to jump into it.",
+            ),
+            (
+                "new",
+                "A search box inside every family: open Messages, type “reaction”, and only the blocks about reactions are shown.",
+            ),
+            ("docs", "A new “Finding a block by typing” part in the guide."),
+        ],
+    },
+    {
         "date": "2026-10-16",
         "title": "Channels, roles, threads and forums",
         "summary": "Your bot can now build and tidy up a community, not only talk in it. Two new block families bring all of it.",
