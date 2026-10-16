@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from . import assets as assetlib
-from . import catalogue, codecheck, embeds
+from . import catalogue, codecheck, embeds, helpers_manage
 
 log = logging.getLogger("scratch_fluxer.compiler")
 
@@ -78,6 +78,19 @@ GENERATED_NAMES = frozenset(
         "log",
         "presence",
         "update_presence",
+        "made",
+        "make_channel",
+        "remove_channel",
+        "make_role",
+        "remove_role",
+        "make_thread",
+        "thread_from_message",
+        "send_in_thread",
+        "change_thread",
+        "forum_tags",
+        "forum_post",
+        "forum_tag_add",
+        "forum_tag_remove",
         "to_number",
         "same",
         "has_item",
@@ -454,6 +467,7 @@ async def update_presence(**changes):
 ''',
     },
 }
+HELPERS.update(helpers_manage.HELPERS)
 #: Helpers are written in this order.
 HELPER_ORDER = [
     "to_number",
@@ -477,6 +491,7 @@ HELPER_ORDER = [
     "uptime_text",
     "send_webhook",
     "update_presence",
+    *helpers_manage.ORDER,
 ]
 
 STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random", "time"]
@@ -817,6 +832,15 @@ class Context:
         if self.kind.startswith("reaction"):
             out.add("reaction")
         return out
+
+    @property
+    def channel_code(self) -> str:
+        """Python for the ID of the channel this script is running in (``None`` when there is none)."""
+        if self.message_var:
+            return f"{self.message_var}.channel_id"
+        if self.kind.startswith("reaction"):
+            return "event.channel_id"
+        return "None"
 
     @property
     def guild_code(self) -> str:
@@ -1197,6 +1221,8 @@ class Generator:
                 return ctx.message_var or "message"
             if name == "guild":
                 return ctx.guild_code
+            if name == "here":
+                return ctx.channel_code
             part = parts[name]
             if "input" in part:
                 expr = self.input(node, name, ctx)
@@ -1319,6 +1345,65 @@ statement_template(
 statement_template(
     "sff_reaction_take_role", 'await moderate({guild}, "remove_role", event.user_id, {ROLE})', "moderate", "as_id"
 )
+#: Blocks that change the community itself. Anyone who can reach them can reshape the community, so the compiler
+#: warns when nobody is checked first (the same warning the moderation blocks get).
+MANAGES_COMMUNITY = frozenset(
+    {
+        "sff_create_channel",
+        "sff_delete_channel",
+        "sff_create_role",
+        "sff_delete_role",
+        "sff_forum_tag_add",
+        "sff_forum_tag_remove",
+    }
+)
+
+
+def management_template(block_type: str, template: str, *needs: str) -> None:
+    def write(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
+        gen.need(*needs)
+        if ctx.moderation is None:
+            ctx.moderation = node
+        rows.add(indent, gen.render(node, ctx, template))
+
+    STATEMENTS[block_type] = write
+
+
+management_template(
+    "sff_create_channel",
+    "await make_channel({guild}, {KIND!}, {NAME}, {EXTRA}, {PARENT})",
+    "make_channel",
+)
+management_template("sff_delete_channel", "await remove_channel({ID})", "remove_channel")
+management_template(
+    "sff_create_role",
+    "await make_role({guild}, {NAME}, {COLOR!}, {HOIST!}, {MENTION!})",
+    "make_role",
+)
+management_template("sff_delete_role", "await remove_role({guild}, {ID})", "remove_role")
+management_template("sff_forum_tag_add", "await forum_tag_add({CHANNEL}, {NAME})", "forum_tag_add")
+management_template("sff_forum_tag_remove", "await forum_tag_remove({CHANNEL}, {NAME})", "forum_tag_remove")
+
+statement_template("sff_thread_start", "await make_thread({CHANNEL} or {here}, {NAME}, {KIND})", "make_thread")
+statement_template(
+    "sff_thread_from_message",
+    "await thread_from_message({msg}.channel_id, {msg}.id, {NAME})",
+    "thread_from_message",
+)
+statement_template("sff_thread_send", "await send_in_thread({THREAD}, {TEXT})", "send_in_thread")
+statement_template("sff_thread_change", "await change_thread({THREAD}, {ACTION})", "change_thread")
+statement_template("sff_forum_post", "await forum_post({CHANNEL}, {TITLE}, {TEXT}, {TAGS})", "forum_post")
+statement_template(
+    "sff_forum_post_picture",
+    "await forum_post({CHANNEL}, {TITLE}, {TEXT}, {TAGS}, fluxer.File(ASSETS / {FILE}))",
+    "forum_post",
+)
+statement_template(
+    "sff_forum_post_link",
+    "await forum_post({CHANNEL}, {TITLE}, {TEXT}, {TAGS}, None, {PICTURE})",
+    "forum_post",
+)
+
 statement_template(
     "sff_typing_here", "channel = await bot.fetch_channel(str({msg}.channel_id))\nawait channel.trigger_typing()"
 )
@@ -1399,6 +1484,10 @@ value_template("sff_list_item", "item_of({LIST}, {N})", "item_of")
 value_template("sff_list_length", "len({LIST})")
 value_template("sff_list_random", "random_item({LIST})", "random_item")
 value_template("sff_list_join", "{SEP^}.join(str(x) for x in {LIST})")
+value_template("sff_new_channel_id", 'made["channel"]', "made")
+value_template("sff_new_role_id", 'made["role"]', "made")
+value_template("sff_new_thread_id", 'made["thread"]', "made")
+value_template("sff_forum_tags", "(await forum_tags({CHANNEL}))", "forum_tags", "as_id")
 value_template("sff_json_get", "json_get({VAR}, {KEY})", "json_get")
 value_template("sff_file_text", '(ASSETS / {FILE}).read_text(encoding="utf-8")')
 
@@ -1900,11 +1989,18 @@ def _script(gen: Generator, hat: Node) -> Rows | None:
         and ctx.kind in ("message", "command")
         and not _contains(hat.next, "sff_author_has_role")
     ):
-        gen.warn(
-            "Anyone who can type this could use it on other people. Put it inside an “if” with "
-            "“author has the role …” so only your staff can.",
-            ctx.moderation,
-        )
+        if ctx.moderation.type in MANAGES_COMMUNITY:
+            gen.warn(
+                "Anyone who can type this could change your community's channels, roles or tags. Put it inside an “if” "
+                "with “author has the role …” so only your staff can.",
+                ctx.moderation,
+            )
+        else:
+            gen.warn(
+                "Anyone who can type this could use it on other people. Put it inside an “if” with "
+                "“author has the role …” so only your staff can.",
+                ctx.moderation,
+            )
 
     if ctx.command_text:  # the text after the command arrives as a keyword argument
         param = 'ctx, *, text: str = ""'

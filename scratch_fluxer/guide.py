@@ -58,6 +58,24 @@ FAMILY_GUIDE: dict[str, dict[str, str]] = {
         ),
         "try": "Use <strong>join</strong> to combine <em>Hello, </em> with a name, or <strong>pick random</strong> to answer with a different number each time.",
     },
+    "community": {
+        "intro": (
+            "These blocks build your community: make a channel (text, voice, announcement, forum, media or link) or a "
+            "role, and delete them again. They change your community for real, so use them inside an “if” that checks "
+            "the person has a staff role. The bot needs the <em>Manage Channels</em> or <em>Manage Roles</em> "
+            "permission, and for roles its own role must be above the roles it makes or deletes."
+        ),
+        "try": "Make a command <strong>!ticket</strong> that makes a text channel called <em>ticket-$authorName</em>, then writes “Welcome!” in it with <strong>send … to channel</strong> and the <strong>ID of the channel I just made</strong>.",
+    },
+    "threads": {
+        "intro": (
+            "A thread is a small side conversation under a channel. Start one (public, or private for a few people), "
+            "write inside it, and close or lock it later. In a <strong>forum</strong> or <strong>media</strong> "
+            "channel every conversation is a post, so these blocks can publish a post with a title, text, an optional "
+            "picture and tags, and add or remove the channel's tags."
+        ),
+        "try": "Make a command <strong>!help</strong> that starts a public thread called <em>Help for $authorName</em> and writes “Tell us what happened” inside it.",
+    },
     "variables": {
         "intro": (
             "A variable is a labelled box that remembers a value. Create one with the <em>Make a variable</em> button in "

@@ -32,7 +32,19 @@ from .embeds import EMBED_COLOR_OPTIONS, EMBED_COLORS  # noqa: F401 - the colour
 
 # --------------------------------------------------------------------------------------------- categories
 
-CATEGORY_ORDER = ["events", "bot", "messages", "info", "control", "operators", "variables", "lists", "data"]
+CATEGORY_ORDER = [
+    "events",
+    "bot",
+    "messages",
+    "info",
+    "community",
+    "threads",
+    "control",
+    "operators",
+    "variables",
+    "lists",
+    "data",
+]
 
 #: The colours match the ``--cat-*`` tokens in public/static/css/app.css (a test keeps them in step).
 CATEGORIES: dict[str, dict[str, str]] = {
@@ -59,6 +71,18 @@ CATEGORIES: dict[str, dict[str, str]] = {
         "icon": "info",
         "color": "#4cc3e0",
         "blurb": "Read what was said, who said it and where.",
+    },
+    "community": {
+        "name": "Channels and roles",
+        "icon": "hash",
+        "color": "#8fd14f",
+        "blurb": "Build your community: make and delete channels (text, voice, announcement, forum, media, link) and roles.",
+    },
+    "threads": {
+        "name": "Threads and forums",
+        "icon": "chats",
+        "color": "#d4a373",
+        "blurb": "Start threads, write inside them, and publish posts (with a picture and tags) in forum and media channels.",
     },
     "control": {
         "name": "Control",
@@ -104,6 +128,21 @@ COMPARE_OPTIONS = [["=", "eq"], ["≠", "ne"], ["<", "lt"], [">", "gt"], ["≤",
 LOGIC_OPTIONS = [["and", "and"], ["or", "or"]]
 TEXT_CASE_OPTIONS = [["uppercase", "upper"], ["lowercase", "lower"], ["title case", "title"], ["trimmed", "strip"]]
 ROUND_OPTIONS = [["round", "round"], ["round down", "floor"], ["round up", "ceil"], ["absolute value", "abs"]]
+
+#: The kinds of channel a bot can make. The value is the number Fluxer uses for that kind of channel.
+CHANNEL_KIND_OPTIONS = [
+    ["text", "0"],
+    ["voice", "2"],
+    ["announcement", "5"],
+    ["forum", "15"],
+    ["media", "16"],
+    ["link", "998"],
+]
+THREAD_KIND_OPTIONS = [["public", "public"], ["private", "private"]]
+THREAD_CHANGE_OPTIONS = [["close", "archive"], ["reopen", "unarchive"], ["lock", "lock"], ["unlock", "unlock"]]
+YES_NO_OPTIONS = [["no", "False"], ["yes", "True"]]
+#: ``[label, rgb number]``: "no colour" first, then the same colours the card pop-up offers.
+ROLE_COLOR_OPTIONS = [["no colour", "0"], *[[label, str(rgb)] for label, _name, rgb in EMBED_COLORS]]
 
 #: File kinds an asset can have (see routes/assets.py). Blocks name the kinds they accept.
 ASSET_KINDS = ("image", "json", "text")
@@ -1107,6 +1146,177 @@ _SPECS: list[dict[str, Any]] = [
         tooltip="Replies with a file you uploaded, as an attachment.",
         needs=("message",),
     ),
+    # ---- channels and roles
+    block(
+        "sff_create_channel",
+        "community",
+        "statement",
+        ["create a", menu("KIND", CHANNEL_KIND_OPTIONS), "channel named", text("NAME", "new-channel")],
+        ["with topic (or the web address, for a link channel)", text("EXTRA", "")],
+        ["inside the category with ID", text("PARENT", "")],
+        tooltip=(
+            "Makes a new channel. Fill in the topic for a text, voice, announcement, forum or media channel, or the web "
+            "address (https://…) for a link channel. Leave the category empty to put it at the top. Needs the Manage "
+            "Channels permission."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_delete_channel",
+        "community",
+        "statement",
+        ["delete the channel (or thread) with ID", text("ID", "")],
+        tooltip=(
+            "Deletes a channel for good, with everything in it. There is no undo. Paste the ID, or use the ID of the "
+            "channel you just made. Needs the Manage Channels permission."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_create_role",
+        "community",
+        "statement",
+        ["create a role named", text("NAME", "Member"), "with colour", menu("COLOR", ROLE_COLOR_OPTIONS)],
+        [
+            "shown apart from others:",
+            menu("HOIST", YES_NO_OPTIONS),
+            "anyone can mention it:",
+            menu("MENTION", YES_NO_OPTIONS),
+        ],
+        tooltip="Makes a new role (it starts with no special permissions). Needs the Manage Roles permission.",
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_delete_role",
+        "community",
+        "statement",
+        ["delete the role with ID", text("ID", "")],
+        tooltip="Deletes a role, so everyone loses it. Needs the Manage Roles permission, and the role must be below the bot's own role.",
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_new_channel_id",
+        "community",
+        "value",
+        ["ID of the channel I just made"],
+        tooltip="The ID of the last channel this bot made. Use it to delete it later or to send something in it.",
+        returns="text",
+    ),
+    block(
+        "sff_new_role_id",
+        "community",
+        "value",
+        ["ID of the role I just made"],
+        tooltip="The ID of the last role this bot made. Use it with “give the role … to the person …”.",
+        returns="text",
+    ),
+    # ---- threads
+    block(
+        "sff_thread_start",
+        "threads",
+        "statement",
+        ["start a", menu("KIND", THREAD_KIND_OPTIONS), "thread named", text("NAME", "Chat")],
+        ["in the channel with ID (empty = this channel)", text("CHANNEL", "")],
+        tooltip=(
+            "Starts a thread in a text or announcement channel. A public thread can be seen by everyone who sees the "
+            "channel; a private one only by the people in it. Needs permission to create threads."
+        ),
+        needs=("message", "reaction"),
+    ),
+    block(
+        "sff_thread_from_message",
+        "threads",
+        "statement",
+        ["start a thread named", text("NAME", "Discussion"), "from this message"],
+        tooltip="Starts a public thread attached to the message that triggered the script.",
+        needs=("message",),
+    ),
+    block(
+        "sff_thread_send",
+        "threads",
+        "statement",
+        ["send", text("TEXT", "Hello!"), "in the thread with ID", text("THREAD", "")],
+        tooltip=(
+            "Writes a message inside a thread. Use the ID of the thread you just made. To bring a person into a private "
+            "thread, mention them in the message."
+        ),
+    ),
+    block(
+        "sff_thread_change",
+        "threads",
+        "statement",
+        [menu("ACTION", THREAD_CHANGE_OPTIONS), "the thread with ID", text("THREAD", "")],
+        tooltip="Closes (archives) or reopens a thread, or locks it so only moderators can write in it.",
+    ),
+    block(
+        "sff_new_thread_id",
+        "threads",
+        "value",
+        ["ID of the thread or post I just made"],
+        tooltip="The ID of the last thread or forum post this bot made. A thread's ID works like a channel's ID.",
+        returns="text",
+    ),
+    # ---- forum and media channels
+    block(
+        "sff_forum_post",
+        "threads",
+        "statement",
+        ["post in the forum or media channel", text("CHANNEL", ""), "with title", text("TITLE", "Hello")],
+        ["and text", text("TEXT", "First post!")],
+        ["and tags (names, separated by commas)", text("TAGS", "")],
+        tooltip=(
+            "Publishes a post in a forum or media channel. Tags must already exist in that channel; write their names "
+            "like Help, Bug. A wrong name is skipped and shown in the console."
+        ),
+    ),
+    block(
+        "sff_forum_post_picture",
+        "threads",
+        "statement",
+        ["post in the forum or media channel", text("CHANNEL", ""), "with title", text("TITLE", "Hello")],
+        ["and text", text("TEXT", "First post!"), "and the picture", asset("FILE", ("image",), "")],
+        ["and tags (names, separated by commas)", text("TAGS", "")],
+        tooltip=(
+            "Publishes a post with a picture you uploaded on the Files tab. The post opens with your text, and the "
+            "picture is added to it right after. Tags must already exist in the channel."
+        ),
+    ),
+    block(
+        "sff_forum_post_link",
+        "threads",
+        "statement",
+        ["post in the forum or media channel", text("CHANNEL", ""), "with title", text("TITLE", "Hello")],
+        ["and text", text("TEXT", "First post!"), "and the picture at", text("PICTURE", "https://")],
+        ["and tags (names, separated by commas)", text("TAGS", "")],
+        tooltip=(
+            "Publishes a post with a picture from a web address (https://…). The picture is shown inside the first "
+            "message. Tags must already exist in the channel."
+        ),
+    ),
+    block(
+        "sff_forum_tag_add",
+        "threads",
+        "statement",
+        ["add the tag", text("NAME", "Help"), "to the forum or media channel", text("CHANNEL", "")],
+        tooltip="Adds a new tag people can pick when they post (up to 20 per channel). Needs the Manage Channels permission.",
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_forum_tag_remove",
+        "threads",
+        "statement",
+        ["remove the tag", text("NAME", "Help"), "from the forum or media channel", text("CHANNEL", "")],
+        tooltip="Removes a tag from the channel by its name. Needs the Manage Channels permission.",
+        needs=("message", "member", "reaction"),
+    ),
+    block(
+        "sff_forum_tags",
+        "threads",
+        "value",
+        ["tags of the forum or media channel", text("CHANNEL", "")],
+        tooltip="A list with the names of the tags the channel has. Use it to check that a tag exists, or to show them.",
+        returns="list",
+    ),
 ]
 
 BLOCKS: dict[str, dict[str, Any]] = {spec["type"]: spec for spec in _SPECS}
@@ -1129,6 +1339,9 @@ CODENAME_LIST: list[tuple[str, str, str, str]] = [
     ("memberMention", "sff_member_mention", "Members and reactions", "A mention of that member"),
     ("memberID", "sff_member_id", "Members and reactions", "ID of that member"),
     ("reactorID", "sff_reactor_id", "Members and reactions", "ID of the person who reacted"),
+    ("newChannelID", "sff_new_channel_id", "Things the bot made", "ID of the channel the bot just made"),
+    ("newRoleID", "sff_new_role_id", "Things the bot made", "ID of the role the bot just made"),
+    ("newThreadID", "sff_new_thread_id", "Things the bot made", "ID of the thread or post the bot just made"),
     ("botName", "sff_bot_name", "The bot", "The bot's name"),
     ("botPing", "sff_bot_ping", "The bot", "Bot ping in milliseconds"),
     ("botUptime", "sff_bot_uptime_text", "The bot", "How long the bot has been running, as words"),

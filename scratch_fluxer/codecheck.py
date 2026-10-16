@@ -109,6 +109,13 @@ ALLOWED_ATTRS = frozenset(
         "set_author",
         "set_footer",
         "execute_webhook",
+        "create_guild_channel",
+        "delete_channel",
+        "create_guild_role",
+        "delete_guild_role",
+        "send_message",
+        "request",
+        "startswith",
         "event",
         "command",
         "on",
@@ -134,6 +141,30 @@ ALLOWED_ATTRS = frozenset(
         "error",
     }
 )
+#: The methods of ``bot._http`` a bot file may call by name (``helpers_manage.py`` and the webhook helper use them).
+HTTP_METHODS = frozenset(
+    {
+        "execute_webhook",
+        "create_guild_channel",
+        "delete_channel",
+        "create_guild_role",
+        "delete_guild_role",
+        "send_message",
+    }
+)
+#: The only requests a bot file may make with ``bot._http.request(bot._http._route(METHOD, PATH, ...), json=...)``.
+HTTP_ROUTES = frozenset(
+    {
+        ("POST", "/channels/{channel_id}/threads"),
+        ("POST", "/channels/{channel_id}/messages/{message_id}/threads"),
+        ("PATCH", "/channels/{channel_id}"),
+        ("GET", "/channels/{channel_id}"),
+        ("POST", "/channels/{channel_id}/tags"),
+        ("DELETE", "/channels/{channel_id}/tags/{tag_id}"),
+    }
+)
+_ROUTE_PARTS = frozenset({"channel_id", "message_id", "tag_id"})
+
 #: Private names the presence helper needs (fluxer.py has no public way to set a custom status yet).
 PRIVATE_ATTRS = frozenset({"_gateway", "_send"})
 
@@ -205,6 +236,7 @@ ALLOWED_NODES = (
     ast.Gt,
     ast.GtE,
     ast.In,
+    ast.NotIn,
     ast.Is,
     ast.IsNot,
 )
@@ -258,11 +290,17 @@ def _is_login(node: ast.AST) -> bool:
     )
 
 
+def _is_bot_http(node: ast.AST) -> bool:
+    """``bot._http``"""
+    return isinstance(node, ast.Attribute) and node.attr == "_http" and _is_name(node.value, "bot")
+
+
 class _Checker(ast.NodeVisitor):
     def __init__(self, bound: set[str]) -> None:
         self.bound = bound
         self.login: ast.Call | None = None  # the final `bot.run(os.environ["FLUXER_TOKEN"])`, the only place for either
         self.http_ok: set[int] = set()  # the `bot._http` in `bot._http.execute_webhook(...)`, the only use of it
+        self.route_ok: set[int] = set()  # the `_route` in `bot._http.request(bot._http._route(...))`
 
     @staticmethod
     def fail(node: ast.AST, message: str) -> None:
@@ -317,7 +355,8 @@ class _Checker(ast.NodeVisitor):
         if attr == "run" or _is_name(node.value, "os"):
             self.fail(node, "the bot token may only be read by the last line of the file, to log in")
         if attr.startswith("_"):
-            if attr not in PRIVATE_ATTRS and not (attr == "_http" and id(node) in self.http_ok):
+            allowed = (attr == "_http" and id(node) in self.http_ok) or (attr == "_route" and id(node) in self.route_ok)
+            if attr not in PRIVATE_ATTRS and not allowed:
                 self.fail(node, f"the attribute {attr!r} is not allowed")
         elif isinstance(node.value, ast.Name) and node.value.id in MODULE_ATTRS:
             if attr not in MODULE_ATTRS[node.value.id]:
@@ -328,14 +367,11 @@ class _Checker(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         func = node.func
-        if (
-            isinstance(func, ast.Attribute)
-            and func.attr == "execute_webhook"
-            and isinstance(func.value, ast.Attribute)
-            and func.value.attr == "_http"
-            and _is_name(func.value.value, "bot")
-        ):
-            self.http_ok.add(id(func.value))
+        if isinstance(func, ast.Attribute) and _is_bot_http(func.value):
+            if func.attr in HTTP_METHODS:
+                self.http_ok.add(id(func.value))
+            elif func.attr == "request":
+                self.check_request(node)
         if not isinstance(node.func, ast.Name | ast.Attribute):
             self.fail(node, "only named functions and methods may be called")
         if any(keyword.arg is None for keyword in node.keywords):
@@ -344,6 +380,40 @@ class _Checker(ast.NodeVisitor):
             self.fail(node, "* arguments are not allowed in calls")
         self.generic_visit(node)
         self.check_file_access(node)
+
+    def check_request(self, node: ast.Call) -> None:
+        """``bot._http.request(bot._http._route("POST", "/channels/{channel_id}/threads", channel_id=...), json=...)``:
+        one of the routes in ``HTTP_ROUTES``, with every ID made by ``str(as_id(...))``."""
+        func = node.func
+        assert isinstance(func, ast.Attribute)
+        route = node.args[0] if len(node.args) == 1 else None
+        if not (
+            isinstance(route, ast.Call)
+            and isinstance(route.func, ast.Attribute)
+            and route.func.attr == "_route"
+            and _is_bot_http(route.func.value)
+        ):
+            self.fail(node, "bot._http.request may only be used with bot._http._route(...)")
+        assert isinstance(route, ast.Call) and isinstance(route.func, ast.Attribute)
+        if any(kw.arg != "json" for kw in node.keywords):
+            self.fail(node, "bot._http.request only takes json=")
+        constants = [arg.value if isinstance(arg, ast.Constant) else None for arg in route.args]
+        if len(constants) != 2 or (constants[0], constants[1]) not in HTTP_ROUTES:
+            self.fail(node, "this request to Fluxer is not one a bot file may make")
+        for kw in route.keywords:
+            made_of_id = (
+                kw.arg in _ROUTE_PARTS
+                and isinstance(kw.value, ast.Call)
+                and _is_name(kw.value.func, "str")
+                and len(kw.value.args) == 1
+                and isinstance(kw.value.args[0], ast.Call)
+                and _is_name(kw.value.args[0].func, "as_id")
+            )
+            if not made_of_id:
+                self.fail(node, "the IDs in a request must be written as str(as_id(...))")
+        self.http_ok.add(id(func.value))
+        self.http_ok.add(id(route.func.value))
+        self.route_ok.add(id(route.func))
 
     def check_file_access(self, node: ast.Call) -> None:
         """Files are reached in three ways only, all through the assets folder and a name fixed in the code."""

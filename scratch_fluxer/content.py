@@ -30,6 +30,16 @@ EXAMPLES: dict[str, list[tuple[str, dict[str, str]]]] = {
         ("sff_send_embed", {"TITLE": "Rules", "TEXT": "Be kind."}),
     ],
     "info": [("sff_msg_text", {}), ("sff_msg_author_name", {}), ("sff_msg_channel_id", {})],
+    "community": [
+        ("sff_create_channel", {"NAME": "news"}),
+        ("sff_create_role", {"NAME": "Member"}),
+        ("sff_delete_channel", {}),
+    ],
+    "threads": [
+        ("sff_thread_start", {"NAME": "Chat"}),
+        ("sff_thread_send", {"TEXT": "Hello!"}),
+        ("sff_forum_post", {"TITLE": "Hello"}),
+    ],
     "control": [("sff_if", {}), ("sff_repeat", {}), ("sff_wait", {"SECONDS": "2"})],
     "operators": [("sff_join", {}), ("sff_compare", {"A": "a", "B": "b"}), ("sff_random", {})],
     "variables": [("sff_set_variable", {}), ("sff_change_variable", {}), ("sff_variable", {})],
@@ -39,7 +49,7 @@ EXAMPLES: dict[str, list[tuple[str, dict[str, str]]]] = {
 
 
 def _categories() -> list[dict[str, Any]]:
-    """The nine families, in the editor's order, with the example blocks for each."""
+    """The families, in the editor's order, with the example blocks for each."""
     found = []
     for key in catalogue.CATEGORY_ORDER:
         family = catalogue.CATEGORIES[key]
