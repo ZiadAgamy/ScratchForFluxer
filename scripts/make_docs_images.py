@@ -324,6 +324,18 @@ def main() -> None:
             image = image.quantize(colors=192, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
             image.save(OUT / "embed-popup.png", optimize=True)
             print("wrote embed-popup", image.size, (OUT / "embed-popup.png").stat().st_size // 1024, "KB")
+        if not ONLY or "colour-picker" in ONLY:
+            window.locator("button.embed-picker").click()
+            window.locator(".cp-hex").fill("#ff8800")
+            popup.wait_for_timeout(250)
+            picker_shot = TMP / "colour-picker-raw.png"
+            window.locator(".cp").screenshot(path=str(picker_shot))
+            from PIL import Image
+
+            image = Image.open(picker_shot).convert("RGB")
+            image = image.quantize(colors=192, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+            image.save(OUT / "colour-picker.png", optimize=True)
+            print("wrote colour-picker", image.size, (OUT / "colour-picker.png").stat().st_size // 1024, "KB")
         tall.close()
 
         browser.close()
