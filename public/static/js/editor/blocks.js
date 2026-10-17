@@ -689,18 +689,54 @@
     E.bus.emit("change", event);
   }
 
-  /* Put `state` (what the server sent) into the workspace without it counting as a change. */
+  /* True when there is nothing in the workspace at all. The two locked blocks can't be deleted, so this only happens
+     when something went wrong (a failed load); an empty workspace must never be saved over the person's blocks. */
+  function isEmpty() {
+    return !!workspace && workspace.getAllBlocks(false).length === 0;
+  }
+
+  /* Put `state` (what the server sent) into the workspace without it counting as a change.
+     All or nothing: if the blocks can't be opened, what was on screen is put back and the error is thrown. */
   function load(state) {
+    var before = workspace.getAllBlocks(false).length ? B.serialization.workspaces.save(workspace) : null;
     loading = true;
     B.Events.disable();
     try {
       workspace.clear();
       B.serialization.workspaces.load(state, workspace);
+    } catch (error) {
+      try {
+        workspace.clear();
+        if (before) B.serialization.workspaces.load(before, workspace);
+      } catch (restoreError) {
+        if (window.console) console.error("[editor] could not put the blocks back", restoreError);
+      }
+      throw error;
     } finally {
       B.Events.enable();
       loading = false;
     }
     workspace.clearUndo();
+    problemBlocks = {};
+    refreshFiles();
+    scrollToStart();
+    E.bus.emit("undo-state");
+  }
+
+  /* Replace the blocks with `state` but as one step the undo button can take back. */
+  function loadUndoable(state) {
+    var before = B.serialization.workspaces.save(workspace);
+    try {
+      B.Events.setGroup(true);
+      workspace.clear();
+      B.serialization.workspaces.load(state, workspace);
+    } catch (error) {
+      B.Events.setGroup(false);
+      workspace.clear();
+      B.serialization.workspaces.load(before, workspace); /* put back what was there */
+      throw error;
+    }
+    B.Events.setGroup(false);
     problemBlocks = {};
     refreshFiles();
     scrollToStart();
@@ -836,7 +872,9 @@
     init: init,
     create: create,
     load: load,
+    loadUndoable: loadUndoable,
     save: save,
+    isEmpty: isEmpty,
     showProblems: showProblems,
     reveal: reveal,
     revealFile: revealFile,

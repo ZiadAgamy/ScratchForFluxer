@@ -92,12 +92,29 @@
       clearTimeout(retryTimer);
       dirty = false;
       status("saving");
+      var workspace = null;
       try {
-        var result = await sff.api(path, { method: "PUT", body: { version: version, workspace: options.serialize() }, keepalive: !!keepalive });
+        workspace = options.serialize();
+      } catch (error) {
+        return failed(error);
+      }
+      if (!workspace) {
+        /* Nothing the server could keep: an editor with no blocks at all (not even the two it always has) means
+           something went wrong here. Saving it would replace the person's real blocks, so nothing is sent. */
+        status("error", "The editor has lost its blocks, so nothing was saved and your saved blocks are untouched. Reload the page.");
+        return false;
+      }
+      try {
+        var result = await sff.api(path, { method: "PUT", body: { version: version, workspace: workspace }, keepalive: !!keepalive });
         version = result.version;
         failures = 0;
         var newer = dirty;
-        options.onSaved(result, newer);
+        try {
+          options.onSaved(result, newer);
+        } catch (error) {
+          /* The save worked. A problem showing its result is not a failed save (and must not be saved again). */
+          if (window.console) console.error("[editor] after saving", error);
+        }
         if (newer) {
           status("dirty");
           schedule(300);

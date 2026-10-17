@@ -341,11 +341,30 @@
       });
   }
 
+  var reopenWarned = false;
+
   function onSaved(result, newer) {
     E.files.set(result.files);
     applyCompile(result.compile);
     if (result.workspace && !newer) {
-      E.blocks.load(result.workspace);
+      try {
+        E.blocks.load(result.workspace);
+      } catch (error) {
+        /* The blocks were saved, but the editor can't open the version the server kept. What is on screen is still
+           the person's own work (the failed load put it back), so it stays. */
+        if (window.console) console.error("[editor] could not open the saved blocks", error);
+        if (!reopenWarned) {
+          reopenWarned = true;
+          sff.toast(
+            "Your blocks were saved, but the editor can't reopen the saved copy" +
+              (error && error.message ? " (" + String(error.message).slice(0, 120) + ")" : "") +
+              ". What you see here is your own work. Please tell the site's maker what you were doing.",
+            "warn",
+            12000
+          );
+        }
+        return;
+      }
       if (result.dropped) {
         sff.toast(E.plural(result.dropped, "block") + " couldn't be kept and " + (result.dropped === 1 ? "was" : "were") + " removed.", "warn", 6000);
       }
@@ -376,7 +395,9 @@
     saver = E.autosave.create({
       botId: botId,
       version: data.version,
-      serialize: E.blocks.save,
+      serialize: function () {
+        return E.blocks.isEmpty() ? null : E.blocks.save();
+      },
       onSaved: onSaved,
       onConflict: onConflict,
       onStatus: setStatus,
