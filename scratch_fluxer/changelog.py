@@ -15,6 +15,25 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 ENTRIES: list[dict[str, Any]] = [
     {
         "date": "2026-10-17",
+        "title": "Your blocks no longer disappear after a refresh",
+        "summary": "A fix for the editor losing everything when the page was refreshed after it had gone wrong.",
+        "changes": [
+            (
+                "fixed",
+                "If the editor couldn't open the copy of your blocks that was just saved, it could end up empty, and refreshing the page then saved that empty editor over your real blocks. Opening blocks now either works completely or leaves exactly what you had on screen.",
+            ),
+            (
+                "fixed",
+                "An editor with no blocks at all is never saved any more. It says “Not saved” and your last saved blocks stay untouched, so a refresh brings them back.",
+            ),
+            (
+                "improved",
+                "If the saved copy can't be reopened, a message now says so (and why) while your own blocks stay on screen.",
+            ),
+        ],
+    },
+    {
+        "date": "2026-10-17",
         "title": "Join event, status emoji and an emoji picker",
         "summary": "Greet new communities, put an emoji in your bot's status, and add emoji to cards without leaving the editor.",
         "changes": [
