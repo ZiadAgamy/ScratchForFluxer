@@ -14,6 +14,25 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-10-18",
+        "title": "The editor stays where you are while you add blocks",
+        "summary": "Two fixes for the editor jumping back to the top and refusing new blocks after a save.",
+        "changes": [
+            (
+                "fixed",
+                "The editor no longer jumps back to the top while you are adding blocks. After a save it only reloads your blocks when the server really had to remove some, and then it keeps your place and zoom.",
+            ),
+            (
+                "fixed",
+                "Your blocks are never replaced while you are holding a block you are dragging, which could leave the editor unable to pick up more blocks.",
+            ),
+            (
+                "fixed",
+                "When the editor can't open the saved copy of your blocks, it leaves its own settings as they were, so you can keep adding blocks, and the message says what differed.",
+            ),
+        ],
+    },
+    {
         "date": "2026-10-17",
         "title": "Your blocks no longer disappear after a refresh",
         "summary": "A fix for the editor losing everything when the page was refreshed after it had gone wrong.",
