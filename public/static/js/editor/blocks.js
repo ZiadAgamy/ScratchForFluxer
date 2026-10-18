@@ -695,23 +695,44 @@
     return !!workspace && workspace.getAllBlocks(false).length === 0;
   }
 
+  /* Blockly changes a few settings while it opens blocks and puts them back when it is done, but not when it fails
+     halfway: it leaves "group these changes" on and "remember for undo" off. Left like that, what is done next
+     (adding a block, say) is not recorded properly. */
+  function keepEventSettings(work) {
+    var group = B.Events.getGroup();
+    var record = B.Events.getRecordUndo();
+    try {
+      return work();
+    } finally {
+      B.Events.setGroup(group || false);
+      B.Events.setRecordUndo(record);
+    }
+  }
+
   /* Put `state` (what the server sent) into the workspace without it counting as a change.
-     All or nothing: if the blocks can't be opened, what was on screen is put back and the error is thrown. */
-  function load(state) {
+     All or nothing: if the blocks can't be opened, what was on screen is put back and the error is thrown.
+     `options.keepView`: stay where you are (same place and zoom) instead of going back to the first block. */
+  function load(state, options) {
+    options = options || {};
     var before = workspace.getAllBlocks(false).length ? B.serialization.workspaces.save(workspace) : null;
+    var view = options.keepView ? { x: workspace.scrollX, y: workspace.scrollY, scale: workspace.getScale() } : null;
     loading = true;
     B.Events.disable();
     try {
-      workspace.clear();
-      B.serialization.workspaces.load(state, workspace);
-    } catch (error) {
-      try {
-        workspace.clear();
-        if (before) B.serialization.workspaces.load(before, workspace);
-      } catch (restoreError) {
-        if (window.console) console.error("[editor] could not put the blocks back", restoreError);
-      }
-      throw error;
+      keepEventSettings(function () {
+        try {
+          workspace.clear();
+          B.serialization.workspaces.load(state, workspace);
+        } catch (error) {
+          try {
+            workspace.clear();
+            if (before) B.serialization.workspaces.load(before, workspace);
+          } catch (restoreError) {
+            if (window.console) console.error("[editor] could not put the blocks back", restoreError);
+          }
+          throw error;
+        }
+      });
     } finally {
       B.Events.enable();
       loading = false;
@@ -719,24 +740,30 @@
     workspace.clearUndo();
     problemBlocks = {};
     refreshFiles();
-    scrollToStart();
+    if (view) {
+      workspace.setScale(view.scale);
+      workspace.scroll(view.x, view.y);
+    } else {
+      scrollToStart();
+    }
     E.bus.emit("undo-state");
   }
 
   /* Replace the blocks with `state` but as one step the undo button can take back. */
   function loadUndoable(state) {
     var before = B.serialization.workspaces.save(workspace);
-    try {
-      B.Events.setGroup(true);
-      workspace.clear();
-      B.serialization.workspaces.load(state, workspace);
-    } catch (error) {
-      B.Events.setGroup(false);
-      workspace.clear();
-      B.serialization.workspaces.load(before, workspace); /* put back what was there */
-      throw error;
-    }
-    B.Events.setGroup(false);
+    keepEventSettings(function () {
+      try {
+        B.Events.setGroup(true);
+        workspace.clear();
+        B.serialization.workspaces.load(state, workspace);
+      } catch (error) {
+        B.Events.setGroup(false);
+        workspace.clear();
+        B.serialization.workspaces.load(before, workspace); /* put back what was there */
+        throw error;
+      }
+    });
     problemBlocks = {};
     refreshFiles();
     scrollToStart();
@@ -875,6 +902,14 @@
     loadUndoable: loadUndoable,
     save: save,
     isEmpty: isEmpty,
+    isDragging: function () {
+      /* a block being carried, either one already in the workspace or one picked up from a block list */
+      if (!workspace) return false;
+      if (workspace.isDragging()) return true;
+      var flyout = workspace.getFlyout ? workspace.getFlyout() : null;
+      var listed = flyout && flyout.getWorkspace ? flyout.getWorkspace() : null;
+      return !!listed && listed.isDragging();
+    },
     showProblems: showProblems,
     reveal: reveal,
     revealFile: revealFile,

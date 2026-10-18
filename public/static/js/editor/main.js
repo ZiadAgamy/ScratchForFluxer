@@ -343,32 +343,78 @@
 
   var reopenWarned = false;
 
-  function onSaved(result, newer) {
+  /* Where two copies of the blocks first differ, in a few words (for the console and for error messages). */
+  function firstDifference(sent, kept) {
+    function normal(state) {
+      var copy = Object.assign({}, state);
+      copy.variables = (state && state.variables ? state.variables.slice() : []).sort(function (a, b) {
+        return String(a.id) < String(b.id) ? -1 : 1;
+      });
+      return copy;
+    }
+    function show(value) {
+      var text = JSON.stringify(value);
+      return text === undefined ? "nothing" : text.length > 60 ? text.slice(0, 57) + "..." : text;
+    }
+    function walk(a, b, path) {
+      if (a === b) return "";
+      var aObject = a && typeof a === "object";
+      var bObject = b && typeof b === "object";
+      if (!aObject || !bObject || Array.isArray(a) !== Array.isArray(b)) return path + ": " + show(a) + " became " + show(b);
+      var keys = Object.keys(a).concat(Object.keys(b).filter(function (key) { return !(key in a); }));
+      for (var i = 0; i < keys.length; i++) {
+        var found = walk(a[keys[i]], b[keys[i]], path + (Array.isArray(a) ? "[" + keys[i] + "]" : "." + keys[i]));
+        if (found) return found;
+      }
+      return "";
+    }
+    try {
+      return walk(normal(sent), normal(kept), "workspace");
+    } catch (problem) {
+      return "";
+    }
+  }
+
+  function showSavedCopyProblem(error, difference) {
+    if (window.console) console.error("[editor] could not open the saved blocks", error, difference);
+    if (reopenWarned) return;
+    reopenWarned = true;
+    sff.toast(
+      "Your blocks were saved, but the editor can't reopen the saved copy" +
+        (error && error.message ? " (" + String(error.message).slice(0, 120) + ")" : "") +
+        (difference ? " [" + difference.slice(0, 160) + "]" : "") +
+        ". What you see here is your own work, and you can keep adding blocks.",
+      "warn",
+      14000
+    );
+  }
+
+  /* The server keeps its own tidy copy of what is saved. Nearly always it is the same blocks (it may trim a space or
+     write an option the way it likes), and then nothing is reloaded: reloading throws away what can be undone and
+     moves the view. Only when it had to remove blocks does the editor show what was kept. */
+  function onSaved(result, newer, sent) {
     E.files.set(result.files);
     applyCompile(result.compile);
-    if (result.workspace && !newer) {
-      try {
-        E.blocks.load(result.workspace);
-      } catch (error) {
-        /* The blocks were saved, but the editor can't open the version the server kept. What is on screen is still
-           the person's own work (the failed load put it back), so it stays. */
-        if (window.console) console.error("[editor] could not open the saved blocks", error);
-        if (!reopenWarned) {
-          reopenWarned = true;
-          sff.toast(
-            "Your blocks were saved, but the editor can't reopen the saved copy" +
-              (error && error.message ? " (" + String(error.message).slice(0, 120) + ")" : "") +
-              ". What you see here is your own work. Please tell the site's maker what you were doing.",
-            "warn",
-            12000
-          );
-        }
-        return;
-      }
-      if (result.dropped) {
-        sff.toast(E.plural(result.dropped, "block") + " couldn't be kept and " + (result.dropped === 1 ? "was" : "were") + " removed.", "warn", 6000);
-      }
+    if (!result.workspace) return;
+    var difference = firstDifference(sent, result.workspace);
+    if (!result.dropped) {
+      if (window.console && difference) console.info("[editor] the server kept a slightly different copy: " + difference);
+      return;
     }
+    if (newer) return; /* more changes were made while saving: the next save brings the answer again */
+    if (E.blocks.isDragging()) {
+      setTimeout(function () { onSaved(result, false, sent); }, 600); /* never replace the blocks under a block being dragged */
+      return;
+    }
+    try {
+      E.blocks.load(result.workspace, { keepView: true });
+    } catch (error) {
+      /* The blocks were saved, but the editor can't open the version the server kept. What is on screen is still
+         the person's own work (the failed load put it back), so it stays. */
+      showSavedCopyProblem(error, difference);
+      return;
+    }
+    sff.toast(E.plural(result.dropped, "block") + " couldn't be kept and " + (result.dropped === 1 ? "was" : "were") + " removed.", "warn", 6000);
   }
 
   // ------------------------------------------------------------------------------------------------ start

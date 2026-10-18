@@ -10,7 +10,7 @@
   /* options:
        botId, version
        serialize()              -> the workspace JSON to save
-       onSaved(result, newer)   -> after a save; `newer` is true if the person kept editing while it was saving
+       onSaved(result, newer, sent) -> after a save; `newer` is true if the person kept editing while it was saving
        onConflict(serverVersion)-> promise of "keep" (save mine over theirs) or "load" (take theirs) or null (later)
        onStatus(state, detail)  -> "saved" | "dirty" | "saving" | "offline" | "error" | "conflict" | "limited"
   */
@@ -110,7 +110,7 @@
         failures = 0;
         var newer = dirty;
         try {
-          options.onSaved(result, newer);
+          options.onSaved(result, newer, workspace);
         } catch (error) {
           /* The save worked. A problem showing its result is not a failed save (and must not be saved again). */
           if (window.console) console.error("[editor] after saving", error);
