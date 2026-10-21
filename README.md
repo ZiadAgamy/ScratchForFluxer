@@ -217,4 +217,4 @@ A block is defined once in `catalogue.py`, and the compiler, the editor, the lan
 
 [MIT](LICENSE): you can use, copy, change and share it, as long as the license text stays with it. Third-party licenses are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Fluxer and its name belong to their owners.
+Fluxer and its name belong to their owners. Scratch For Fluxer is not affiliated with Fluxer Platform AB, it is a tool that helps you create your own Fluxer bot and that's it.
