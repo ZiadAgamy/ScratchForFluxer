@@ -582,6 +582,16 @@ _SPECS: list[dict[str, Any]] = [
         needs=("message", "member", "reaction"),
     ),
     block(
+        "sff_set_nickname",
+        "messages",
+        "statement",
+        ["change the nickname of the person", text("USER", ""), "to", text("NICK", ""), "reason", text("REASON", "")],
+        tooltip=(
+            "Sets a person's nickname in this community (at most 32 letters). Leave the nickname empty to remove it. Paste their ID or mention them. Needs the Manage Nicknames permission and a role above theirs."
+        ),
+        needs=("message", "member", "reaction"),
+    ),
+    block(
         "sff_kick_member",
         "messages",
         "statement",

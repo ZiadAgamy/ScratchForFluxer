@@ -350,6 +350,12 @@ HELPERS: dict[str, dict[str, Any]] = {
                 await member.add_role(as_id(extra), reason=why)
             elif action == "remove_role":
                 await member.remove_role(as_id(extra), reason=why)
+            elif action == "nick":
+                nick = str(extra).strip()
+                if len(nick) > 32:
+                    print("Nickname skipped: a nickname can be at most 32 letters.")
+                    return
+                await member.edit(nick=nick, reason=why)
     except Exception:
         print("Moderation failed (" + action + "). Check the bot's permissions and that its role is above the person's.")
 ''',
@@ -1334,6 +1340,7 @@ ACTS_ON_PEOPLE = frozenset(
         "sff_unban_member",
         "sff_give_role_to",
         "sff_take_role_from",
+        "sff_set_nickname",
     }
 )
 
@@ -1356,6 +1363,7 @@ moderation_template("sff_untimeout_member", 'await moderate({guild}, "untimeout"
 moderation_template("sff_kick_member", 'await moderate({guild}, "kick", {USER}, 0, {REASON})')
 moderation_template("sff_ban_member", 'await moderate({guild}, "ban", {USER}, 0, {REASON})')
 moderation_template("sff_unban_member", 'await moderate({guild}, "unban", {USER}, 0, {REASON})')
+moderation_template("sff_set_nickname", 'await moderate({guild}, "nick", {USER}, {NICK}, {REASON})')
 moderation_template("sff_give_role_to", 'await moderate({guild}, "add_role", {USER}, {ROLE})')
 moderation_template("sff_take_role_from", 'await moderate({guild}, "remove_role", {USER}, {ROLE})')
 statement_template(
