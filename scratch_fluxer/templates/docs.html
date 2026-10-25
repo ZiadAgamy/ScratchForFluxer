@@ -332,6 +332,9 @@
         </li>
       </ol>
 
+      <h3 id="save-load-blocks">Save and load your blocks</h3>
+      <p>The same menu has two more items under <em>Blocks</em>. <strong>Save your blocks</strong> downloads a small <code>.json</code> file with all your blocks (not the Python), which is a good backup and the way to share a bot with a friend. <strong>Load blocks from a file…</strong> replaces the blocks in this bot with the ones in such a file. Fluxer's pictures and data files are not inside it: if a block uses a file, add that file in the Files tab with the same name.</p>
+
       <h3>What is in the zip</h3>
       <ul class="files-list">
         <li>{{ icon("file-code") }}<span><code>main.py</code> The bot.</span></li>
@@ -744,10 +747,10 @@ sudo journalctl -u mybot -f{% endcall %}
       </details>
 
       <details class="qa" id="trouble-roles">
-        <summary>Roles, kick, ban and timeout blocks don't work</summary>
+        <summary>Roles, nickname, kick, ban and timeout blocks don't work</summary>
         <div class="qa-body">
           <ul>
-            <li>The bot needs the matching permission in your community: <em>Manage Roles</em> to give or take roles, <em>Kick Members</em>, <em>Ban Members</em>, or the timeout permission.</li>
+            <li>The bot needs the matching permission in your community: <em>Manage Roles</em> to give or take roles, <em>Manage Nicknames</em> to change a nickname, <em>Kick Members</em>, <em>Ban Members</em>, or the timeout permission.</li>
             <li>A bot can only manage roles that are <strong>lower</strong> than its own highest role. In the community's role settings, drag the bot's role above the ones it should give.</li>
             <li>A bot can't act on the owner of the community, or on someone whose highest role is above its own.</li>
             <li>The blocks print <em>Moderation failed</em> in the console, with the reason, instead of crashing. Read that line.</li>
