@@ -115,6 +115,7 @@ async def test_each_moderation_block_calls_its_endpoint(tmp_path):
         block("sff_unban_member", inputs={"USER": "321", "REASON": ""}),
         block("sff_give_role_to", inputs={"ROLE": ROLE, "USER": "321"}),
         block("sff_take_role_from", inputs={"ROLE": ROLE, "USER": "321"}),
+        block("sff_set_nickname", inputs={"USER": "321", "NICK": "  Captain  ", "REASON": "fun"}),
     ]
     running = await _ready(build(tmp_path, command("all", staff_only(*steps))))
     running.http.member_roles[800] = [STAFF]
@@ -126,12 +127,15 @@ async def test_each_moderation_block_calls_its_endpoint(tmp_path):
         "unban_guild_member",
         "add_guild_member_role",
         "remove_guild_member_role",
+        "modify_guild_member",
     ):
         assert expected in names
     timeouts = running.http.named("timeout_guild_member")
     assert timeouts[0][1]["until"] and timeouts[1][1]["until"] is None
     assert running.http.named("ban_guild_member")[0][0][:2] == (700, 321)
     assert running.http.named("unban_guild_member")[0][0][:2] == (700, 321)
+    nick = running.http.named("modify_guild_member")[0]
+    assert nick[0][:2] == (700, 321) and nick[1]["nick"] == "Captain" and nick[1]["reason"] == "fun"
 
 
 async def test_the_bot_never_moderates_itself_and_bad_ids_do_not_crash(tmp_path, capsys):
