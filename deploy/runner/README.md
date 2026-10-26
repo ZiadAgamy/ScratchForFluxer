@@ -1,27 +1,20 @@
-# The runner
+# Running bots with the runner
 
-A Fluxer bot has to stay connected to Fluxer all the time. Vercel runs the website in short-lived functions, which can't
-do that. So the website hands the bot's code to a small service that does: **the runner**. This folder is that service,
-ready to run in a container.
+A bot needs a process that can stay connected to Fluxer. Vercel functions are short-lived, so they can’t host that process. Instead, the website sends the bot’s code to a small service called **the runner**. The files in this folder are ready to run in a container.
 
 ```
  person's browser ──► website on Vercel ──(signed, over https)──► runner ──► one process per bot ──► Fluxer
 ```
 
-The website only ever asks the runner to start, stop and report on a bot. The bot's token travels to the runner when
-the bot is started and lives only in that bot's process.
+The website uses the runner to start, stop, and check bots. A bot token is sent over when the bot starts and is kept in that bot’s process; it isn’t shared with the other running bots.
 
-## What you need
+## Before you start
 
-- A host that can keep a Docker container running all the time and lets it reach Fluxer over the internet. A small
-  VPS is enough to start with. Vercel, Netlify and other function hosts can't run it.
-- A web address with https in front of it (a reverse proxy such as Caddy or nginx, or your host's own). The website
-  refuses a plain `http://` runner address, because bot tokens travel to it.
-- About 50 MB of memory for each simple bot that is running (measured: a bot made from the starter blocks uses about
-  40 MB). `RUNNER_MEMORY_MB` is the ceiling for one bot that grows, so a runner that is full of such bots needs
-  `RUNNER_MAX_CONCURRENT × RUNNER_MEMORY_MB`.
+- A server that can keep a Docker container running and reach Fluxer over the internet. A small VPS is enough to get started. Vercel, Netlify, and other function hosts aren’t suitable for the runner.
+- An HTTPS address for the runner, usually through a reverse proxy such as Caddy or nginx. The website rejects plain `http://` runner URLs because bot tokens are sent to the service.
+- Plan for roughly 50 MB of memory per simple running bot. A bot made from the starter blocks used about 40 MB in testing. `RUNNER_MEMORY_MB` is the limit for each bot, so the maximum memory budget is roughly `RUNNER_MAX_CONCURRENT × RUNNER_MEMORY_MB`.
 
-## Start it
+## Start the runner
 
 From the project folder:
 
@@ -32,7 +25,7 @@ curl http://127.0.0.1:8080/healthz
 # {"ok":true,"running":0,"room":8,"user_per_bot":true}
 ```
 
-Then put https in front of port 8080. With Caddy that is one line in the Caddyfile:
+Next, put HTTPS in front of port 8080. With Caddy, the configuration can be as simple as:
 
 ```
 runner.example.com {
@@ -40,17 +33,16 @@ runner.example.com {
 }
 ```
 
-Last, give the website the same two values (on Vercel: Project Settings → Environment Variables, then redeploy):
+Finally, set these two values on the website (in Vercel, open Project Settings → Environment Variables, then redeploy):
 
 | Name            | Value                                |
 | --------------- | ------------------------------------ |
 | `RUNNER_URL`    | `https://runner.example.com`         |
 | `RUNNER_SECRET` | the secret from above (same on both) |
 
-Open the editor on your site: the Run button works now. If it says running bots isn't switched on, the website
-doesn't see `RUNNER_URL` and `RUNNER_SECRET` yet, or the secret is shorter than 32 characters.
+Open the editor and try **Run**. If the site says running bots isn’t enabled, check that it can read `RUNNER_URL` and `RUNNER_SECRET`, and that the secret has at least 32 characters.
 
-## Settings of the runner
+## Runner settings
 
 | Name                     | Default        | What it does                                                                     |
 | ------------------------ | -------------- | -------------------------------------------------------------------------------- |
@@ -59,22 +51,22 @@ doesn't see `RUNNER_URL` and `RUNNER_SECRET` yet, or the secret is shorter than 
 | `RUNNER_MAX_PER_USER`    | `2`            | Bots one person may run at the same time.                                        |
 | `RUNNER_MEMORY_MB`       | `384`          | What one bot may hold in memory. A bot that goes over is stopped.                |
 | `RUNNER_MAX_RUN_SECONDS` | `21600`        | A bot is stopped after this long (6 hours). People press Run to go on.           |
-| `RUNNER_UID_BASE`        | `41000` (image) | See "How bots are kept apart". Leave it empty if the runner can't be root.       |
+| `RUNNER_UID_BASE`        | `41000` (image) | See "How bot processes are isolated". Leave it empty if the runner can't be root.       |
 | `RUNNER_DATA_DIR`        | `/var/sff/runs` | Where each bot gets its folder. Mount a small tmpfs here (the compose file does). |
 | `PORT`                   | `8080`         | The port inside the container.                                                   |
 | `FLUXER_API_URL`         | Fluxer's own   | Only for a self-hosted Fluxer. Set it on the website as well.                    |
 | `MAX_ASSETS_TOTAL_BYTES` | `8388608`      | If you raise this on the website, raise it here too, or big uploads are refused. |
 
-## How bots are kept apart
+## How bot processes are isolated
 
-Everything a person builds is code that runs on your machine, so the runner is careful with it. From the outside in:
+Bots run code on your machine, so the runner puts several limits around each process:
 
 1. **The code is checked twice**, once when the blocks become Python and again just before a bot starts. Only the
    imports and calls the blocks can produce are allowed. Anything else is refused.
 2. **Every bot is its own process**, in its own folder, started from a clean environment that holds the bot's token and
    nothing else the runner knows (not the secret, not the other bots).
 3. **Limits**: memory, processor time, file size, open files, how long it runs, how much it writes to its console.
-4. **A user of its own.** When the runner starts as root and `RUNNER_UID_BASE` is set (the image does this), each bot
+4. **A dedicated user account.** When the runner starts as root and `RUNNER_UID_BASE` is set (the image does this), each bot
    runs as a different user id with no capabilities. It can't read another bot's folder, the runner's files or the runner's
    environment, and it can't start more than 128 processes. When a bot ends, everything it left running ends too.
 
@@ -91,29 +83,24 @@ everything else:
 The runner checks this when it starts. If one is missing it refuses to start and says which, instead of running bots
 that can't be stopped. `"user_per_bot": true` in `/healthz` tells you the mode you are in.
 
-**If your host can't run the container as root** (some platforms insist on a normal user), start it with an empty
-`RUNNER_UID_BASE`. It still works, but all bots then share the runner's user, so a bot that got past steps 1 to 3 could
-read the runner's environment. That is the weaker setup; prefer a host that allows the first.
+**If your host can’t run the container as root**, set `RUNNER_UID_BASE` to an empty value. The runner will still work, but all bots share the same user. A bot that gets past the first three safeguards could then read the runner’s environment. This is a weaker setup, so use a host that supports the per-bot user IDs when possible.
 
-**Network.** A bot can reach whatever the container can reach. The blocks only talk to Fluxer, but if you want to be
-sure, stop the container from reaching your private networks and the cloud metadata address (`169.254.169.254`), for
-example with firewall rules on the host. Docker publishes a chain for this (`DOCKER-USER`). I haven't tested rules
-for your network, so check them from inside the container with `curl`.
+**Network access.** A bot can reach any address that the container can reach. The built-in blocks talk to Fluxer, but
+that does not stop other code from trying to contact different services. Consider blocking access to private networks and
+the cloud metadata address (`169.254.169.254`) with host firewall rules. Docker provides the `DOCKER-USER` chain for
+this. Test your rules from inside the container, for example with `curl`.
 
-## Good to know
 
-- **One runner, one worker.** The bots that are running belong to that one process, so don't start more than one copy
-  or use `--workers` above 1. The image doesn't.
-- **A restart stops every bot.** That includes updating the image. The website tells people ("The runner no longer has
-  this run") and they press Run again. Bots don't start by themselves.
-- **Nothing is stored.** A bot's folder and its console messages are kept only while it runs and a short while after.
-  Code and tokens live on the website's database; the runner only gets them when a bot is started.
-- **Logs.** The runner's own log (`docker compose logs`) records what the runner did, not what bots said, and is kept
-  free of tokens and secrets.
-- **Changing the secret.** Change `RUNNER_SECRET` on both sides, restart the runner, redeploy the website.
-- **Update.** `git pull`, then `docker compose -f deploy/runner/docker-compose.yml up -d --build`.
+## A few things to keep in mind
 
-## Without Docker
+- **Run one worker only.** Running bots belong to a single runner process. Don’t start multiple copies or set `--workers` above `1`; the included image already uses one worker.
+- **Restarting stops all bots.** This also happens when you update the image. The website reports that the run is gone, and the user can press **Run** again. Bots don’t restart automatically.
+- **Bot files are temporary.** A bot’s working folder and console output are kept only while it runs and briefly afterward. The website stores the saved code and token; the runner receives them when a bot starts.
+- **Logs.** `docker compose logs` shows runner activity, not the bot’s console output. Runner logs should not contain tokens or secrets.
+- **Rotating the secret.** Update `RUNNER_SECRET` on the website and runner, restart the runner, then redeploy the website.
+- **Update the runner.** Run `git pull`, then `docker compose -f deploy/runner/docker-compose.yml up -d --build`.
+
+## Run it without Docker
 
 ```bash
 pip install -r requirements.txt
