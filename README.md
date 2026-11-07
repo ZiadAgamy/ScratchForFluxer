@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/SFF-Logo.png" alt="Voicey Bot logo" width="140" />
+<img src="public/SFF-Logo.png" alt="Voicey Bot logo" width="200" />
 
 # Scratch For Fluxer - Visual Block Programming tool for Fluxer bots
 
