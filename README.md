@@ -1,27 +1,29 @@
 <div align="center">
 
-# Scratch For Fluxer
+![SFF Logo](https://fluxerusercontent.com/attachments/1553822793353670656/1568608072417423361/SFF_Logo.png?ex=6af06f9b&is=6aef1e1b&hm=2376505d4940fc53a20f034054ec275577134833b8cc397aeb1d23afc607610b)
 
-**Build [Fluxer](https://fluxer.app) bots by snapping blocks together, then see the Python behind every block.**
-Build in your browser, then run your bot or download the Python file.
+# Scratch For Fluxer - Visual Block Programming tool for Fluxer bots
 
-[**Open the site**](https://scratch.fluxer.my) · [**Read the guide**](https://scratch.fluxer.my/docs) · [**Join the community**](https://fluxer.gg/oHy1OzcO) · [**Source code**](https://github.com/ZiadAgamy/ScratchForFluxer)
-
-</div>
+Drag blocks like you would in Scratch, read the real Python they write, then run your bot. Made for people learning the Fluxer bot API with fluxer.py.
+[![Website](https://img.shields.io/badge/Website-Scratch%20For%20Fluxer-176DFF?style=for-the-badge)](https://scratch.fluxer.my) [![Docs](https://img.shields.io/badge/Docs-SFF%20Community-FF9F1C?style=for-the-badge)](https://scratch.fluxer.my/docs) [![Community](https://img.shields.io/badge/Community-Community%20Guild-FF4D5E?style=for-the-badge)](https://fluxer.gg/oHy1OzcO)
 
 ![The editor: blocks on the left, the Python they write on the right, and the console of a running bot](docs/screenshot-editor.png)
 
-## What you can do
+</div>
 
+---
+
+## What can you do?
 - Build bots in a **block editor** powered by [Blockly](https://developers.google.com/blockly). There are 110+ blocks across 11 groups, from messages and roles to variables, lists, and JSON files.
 - Every block maps to real [fluxer.py](https://github.com/akarealemil/fluxer.py) code. Read it in the editor, copy it, or download `main.py` and run it yourself.
 - Sign in with Fluxer, add your bot token, press **Run**, and follow the bot’s output in the console.
 - Use the guide at `/docs` for screenshots and a reference for every block.
 
-You can start using the hosted version right away at **<https://scratch.fluxer.my>**. No installation needed. The rest of this guide is for anyone who wants to run their own copy, whether locally or alongside a self-hosted Fluxer.
+*You can start using the hosted version right away at **<https://scratch.fluxer.my>**. No installation needed. The rest of this guide is for anyone who wants to run their own copy, whether locally or alongside a self-hosted Fluxer.*
 
-## How it fits together
+---
 
+# How it works?
 ```
  browser ──► the website (FastAPI) ──signed, over https──► the runner (small service) ──► one process per bot ──► Fluxer
                   │
@@ -33,7 +35,8 @@ You can start using the hosted version right away at **<https://scratch.fluxer.m
 | **Website** | The editor, the login, the database, turning blocks into Python | Your computer, a VPS, or Vercel |
 | **Runner** | Keeps bots connected to Fluxer, one process per bot | Any machine that can keep a Docker container running. Not Vercel |
 
-When you run the site on your computer, it can run bots itself. You only need a separate runner for a hosted setup.
+> [!TIP]
+> When you run the site on your computer, it can run bots itself. You only need a separate runner for a hosted setup.
 
 ---
 
@@ -59,6 +62,8 @@ python -m scratch_fluxer           # starts the site
 
 Open **<http://localhost:8000>**. Use `localhost`, not `127.0.0.1`: it must match `APP_BASE_URL` exactly or the login can't find its cookie.
 
+---
+
 ## 2. Set up Fluxer login
 
 To sign in with Fluxer, create an application and add your site’s callback address to its redirect list.
@@ -70,9 +75,11 @@ To sign in with Fluxer, create an application and add your site’s callback add
    | Where you run it | Redirect URI |
    | ---------------- | ------------ |
    | Your computer | `http://localhost:8000/auth/callback` |
-   | Online | `https://your-domain.example/auth/callback` |
+   | Online | `https://<your-domain.example>/auth/callback` |
 
 The site only requests the `identify` scope, which provides your ID, name, and avatar. It never gets your password, email, or messages.
+
+---
 
 ## 3. Connect a self-hosted Fluxer
 
@@ -96,8 +103,10 @@ If you host Fluxer yourself, the site needs your instance’s service URLs. By d
    These values show the expected format. Use the actual addresses listed on your `/.well-known/fluxer` page.
 3. Set `FLUXER_API_URL` on the **runner** too, so your bots connect to your instance and not the public one.
 4. Create the application (step 2) **on your own Fluxer**, not on the public one.
-
+> [!NOTE]
 > This configuration follows Fluxer’s documentation, but it hasn’t been tested against a live self-hosted instance yet. Please open an issue if a step doesn’t match your setup.
+
+---
 
 ## 4. Deploy it
 
@@ -131,6 +140,8 @@ Then add `https://your-domain/auth/callback` to your Fluxer application's redire
 
 If a required setting is missing, the site shows an **“Almost ready”** page and tells you what needs fixing. `/healthz` remains available for health checks.
 
+---
+
 ### The runner
 
 Bots need a process that can stay online, so hosted bots run on a small separate service instead of Vercel.
@@ -144,6 +155,8 @@ curl http://127.0.0.1:8080/healthz        # {"ok":true,"running":0,...}
 Put https in front of port 8080 (a reverse proxy such as Caddy, or a tunnel), then give the website the same two values: `RUNNER_URL` and `RUNNER_SECRET`. The full guide is in [deploy/runner/README.md](deploy/runner/README.md).
 
 Without a runner, you can still edit, save, and download bots; only the **Run** button is unavailable.
+
+---
 
 ## Settings you can tune
 
@@ -159,6 +172,8 @@ The settings are environment variables. Use [`.env.example`](.env.example) as a 
 | `CONTACT_URL` | none | Shown on the privacy page (`mailto:` or a link) |
 | `COMMUNITY_URL` | this project's server | The community link in the footer. Empty hides it |
 
+---
+
 ## Troubleshooting
 
 | You see | What to do |
@@ -172,6 +187,8 @@ The settings are environment variables. Use [`.env.example`](.env.example) as a 
 | "The saved token can't be read any more" | `SECRET_KEY` was changed. Put the old key in `SECRET_KEY_PREVIOUS`, or paste the token again |
 | Everyone looks like one visitor / "Too many requests" | Behind a reverse proxy, set `TRUST_PROXY=1` |
 
+---
+
 ## Security basics
 
 - Bot tokens are **encrypted** before they are saved, and are never sent back to the browser.
@@ -180,6 +197,8 @@ The settings are environment variables. Use [`.env.example`](.env.example) as a 
 - **Delete my data** on the My bots page removes the account, bots, tokens and files.
 
 The [runner guide](deploy/runner/README.md) covers the details, including network rules that you must configure yourself. Read it before allowing other people to run bots on your machine.
+
+---
 
 ## Developing locally
 
@@ -197,6 +216,8 @@ ruff check . && ruff format --check .
 
 Each block is described once in `catalogue.py`. The editor, compiler, landing page, `/docs` reference, and tests all use that definition. Adding a block usually means adding its entry there and teaching `compiler.py` which Python to generate.
 
+---
+
 ## Useful links
 
 | | |
@@ -211,6 +232,8 @@ Each block is described once in `catalogue.py`. The editor, compiler, landing pa
 | fluxer.py (the bot library) | <https://github.com/akarealemil/fluxer.py> |
 | Blockly | <https://github.com/google/blockly> |
 | Phosphor icons | <https://phosphoricons.com> |
+
+---
 
 ## License
 
