@@ -6,7 +6,7 @@
 
 Drag blocks like you would in Scratch, read the real Python they write, then run your bot. Made for people learning the Fluxer bot API with fluxer.py.
 
-[![Website](https://img.shields.io/badge/Website-Scratch%20For%20Fluxer-176DFF?style=for-the-badge)](https://scratch.fluxer.my) [![Docs](https://img.shields.io/badge/Docs-SFF%20Community-FF9F1C?style=for-the-badge)](https://scratch.fluxer.my/docs) [![Community](https://img.shields.io/badge/Community-Community%20Guild-FF4D5E?style=for-the-badge)](https://fluxer.gg/oHy1OzcO)
+[![Website](https://img.shields.io/badge/Website-Scratch%20For%20Fluxer-176DFF?style=for-the-badge)](https://scratch.fluxer.my) [![Docs](https://img.shields.io/badge/Docs-SFF%20Documents-FF9F1C?style=for-the-badge)](https://scratch.fluxer.my/docs) [![Community](https://img.shields.io/badge/Community-Community%20Guild-FF4D5E?style=for-the-badge)](https://fluxer.gg/oHy1OzcO)
 
 ![The editor: blocks on the left, the Python they write on the right, and the console of a running bot](docs/screenshot-editor.png)
 
