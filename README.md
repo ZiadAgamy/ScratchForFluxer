@@ -1,6 +1,6 @@
 <div align="center">
 
-![SFF Logo](https://fluxerusercontent.com/attachments/1553822793353670656/1568608072417423361/SFF_Logo.png?ex=6af06f9b&is=6aef1e1b&hm=2376505d4940fc53a20f034054ec275577134833b8cc397aeb1d23afc607610b)
+<img src="public/favicon.ico" alt="Voicey Bot logo" width="140" />
 
 # Scratch For Fluxer - Visual Block Programming tool for Fluxer bots
 
