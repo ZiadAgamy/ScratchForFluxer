@@ -64,6 +64,8 @@
       <li><a href="#find-blocks">Finding a block</a></li>
       <li><a href="#cards">Cards (embeds)</a></li>
       <li><a href="#codenames">Codenames</a></li>
+      <li><a href="#commands">Commands: arguments and locks</a></li>
+      <li><a href="#schedules">Schedules and time zones</a></li>
       <li><a href="#community">Channels, roles, threads</a></li>
       {%- for f in families %}
       <li><a href="#blocks-{{ f.id }}" data-family="{{ f.id }}"><i class="docs-dot" style="--dot: var(--cat-{{ f.id }})"></i>{{ f.name }}</a></li>
@@ -555,6 +557,7 @@ sudo journalctl -u mybot -f{% endcall %}
         <li>{{ icon("check-circle") }}<span><code>$varCoins</code> is the value of the variable <strong>Coins</strong>.</span></li>
         <li>{{ icon("check-circle") }}<span><code>$listShop</code> is every item of the list <strong>Shop</strong>, with commas between them.</span></li>
         <li>{{ icon("check-circle") }}<span><code>$countShop</code> is how many items the list <strong>Shop</strong> has.</span></li>
+        <li>{{ icon("check-circle") }}<span><code>$argUser</code> is the word a person wrote for the argument <strong>user</strong> of the command you are in. See <a href="#commands">Commands: arguments and locks</a>.</span></li>
       </ul>
 
       <h3>Values from the message, the member and the bot</h3>
@@ -580,6 +583,43 @@ sudo journalctl -u mybot -f{% endcall %}
         <li>{{ icon("check-circle") }}<span><strong>Misspelled a codename?</strong> It stays as you typed it and the editor shows a warning, so a typo is easy to spot.</span></li>
         <li>{{ icon("check-circle") }}<span><strong>Blocks still work.</strong> A codename is only a shortcut. If you plug a block into a socket, it keeps working exactly as before.</span></li>
       </ul>
+    </section>
+
+    <section class="doc" id="commands" aria-labelledby="h-commands">
+      <h2 id="h-commands">Commands: arguments and locks</h2>
+      <p>The yellow <strong>when the command … is used</strong> block has two extra settings. They are what you need for commands like <code>!say</code> or <code>!kick @someone spamming</code>.</p>
+
+      <h3>Arguments: the words after the command</h3>
+      <p>In the box next to <strong>arguments</strong>, write a name for each word you want people to type after the command, separated by spaces. For a kick command write <code>user reason</code>. Now <code>!kick @Sam spamming a lot</code> gives you two values: <code>$argUser</code> is <em>@Sam</em> and <code>$argReason</code> is <em>spamming a lot</em>.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>Use them anywhere you can type text.</strong> Write <code>$arg</code> and then the name (capital letters don't matter): <code>$argUser</code>. Or drop the round <strong>argument</strong> block from <em>Message info</em> into a socket and type the name.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>The last argument takes everything that is left.</strong> A command with one argument, <code>message</code>, makes a perfect <code>!say</code>: <em>reply with</em> <code>$argMessage</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Missing arguments are explained.</strong> If someone types <code>!kick</code> and nothing else, the bot answers <em>Usage: !kick &lt;user&gt; [reason]</em> and stops, so your blocks never run on empty values.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>Optional arguments end with a question mark:</strong> <code>user reason?</code> means the reason can be left out (then <code>$argReason</code> is empty).</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>People and roles.</strong> A moderation block accepts an argument that holds an ID or a mention, so <em>kick the person</em> <code>$argUser</code> works with <code>!kick @Sam</code>.</span></li>
+        <li>{{ icon("check-circle") }}<span>A command can have up to 8 arguments. Names use letters and digits, and start with a letter.</span></li>
+      </ul>
+
+      <h3>Who can use it: lock a command to a permission</h3>
+      <p>Open the <strong>who can use it</strong> menu on the command block and pick a permission, such as <em>people who can kick members</em>. Only people who have that permission in your community can run the command. Everyone else gets <em>“You don't have permission to use this command.”</em>, and none of your blocks run. Administrators and the owner of the community can always use a locked command.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span>The editor's warning <em>“Anyone who can type this could use it on other people”</em> goes away when the command is locked, because now only the right people can.</span></li>
+        <li>{{ icon("check-circle") }}<span>The lock checks the person who <em>typed</em> the command. Your bot still needs its own permission for what it does (for example <em>Kick Members</em>).</span></li>
+        <li>{{ icon("check-circle") }}<span>You can still use <strong>author has the role …</strong> when you want to check one particular role instead of a permission.</span></li>
+      </ul>
+      <p class="try"><strong>Try it:</strong> make a command <em>say</em> with the argument <code>message</code>, lock it to <em>people who can manage messages</em>, and put <em>reply with</em> <code>$argMessage</code> under it. Then <code>!say hello everyone</code> repeats what you wrote, but only for your moderators.</p>
+    </section>
+
+    <section class="doc" id="schedules" aria-labelledby="h-schedules">
+      <h2 id="h-schedules">Schedules and time zones</h2>
+      <p>Most blocks wait for something to happen. Two yellow blocks make the bot act <strong>by itself</strong>, on the clock, with no message needed.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>when the clock reaches 09:00 every day</strong> runs at a time of day. Type the time with a 24-hour clock (<code>09:00</code>, <code>21:30</code>), pick the days (every day, weekdays, weekends, or one day), and pick the <strong>time zone</strong> the time is in. A bot in Cairo that should say good morning at 9 uses <em>Cairo (Egypt)</em>, and the time zone's summer-time changes are handled for you.</span></li>
+        <li>{{ icon("check-circle") }}<span><strong>every 30 minutes</strong> runs again and again. The wait is at least 1 minute and at most 7 days. The first run happens after the first wait.</span></li>
+        <li>{{ icon("check-circle") }}<span>The round <strong>current time in …</strong> block gives the time, date, day of the week, hour or minute in a time zone. Use it in a message, or with <em>if</em> to do something only at certain hours.</span></li>
+      </ul>
+      <p>A scheduled script has no message under it, so it can't <em>reply</em>. Use <strong>send … to channel</strong> and paste the channel's ID (see <a href="#community">Where do I get an ID?</a>). A bot can have up to 10 schedule blocks, and each runs as long as the bot runs. If one run has a problem, the console says so and the schedule keeps going.</p>
+      <p class="try"><strong>Try it:</strong> use <em>when the clock reaches 09:00 every day</em> with your time zone, and snap <em>send</em> <code>Good morning! It is $botName time</code> <em>to channel</em> your channel's ID under it.</p>
     </section>
 
     <section class="doc" id="community" aria-labelledby="h-community">

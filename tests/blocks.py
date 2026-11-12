@@ -96,8 +96,9 @@ def on_message(*steps: dict[str, Any], **kw: Any):
     return hat("sff_event_message", *steps, **kw)
 
 
-def command(name: str, *steps: dict[str, Any], **kw: Any):
-    return hat("sff_event_command", *steps, fields={"NAME": name}, **kw)
+def command(name: str, *steps: dict[str, Any], who: str | None = None, args: str | None = None, **kw: Any):
+    fields = {"NAME": name, "WHO": "everyone" if who is None else who, "ARGS": "" if args is None else args}
+    return hat("sff_event_command", *steps, fields=fields, **kw)
 
 
 def on_join(*steps: dict[str, Any], **kw: Any):

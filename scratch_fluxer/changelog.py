@@ -14,6 +14,48 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-11-12",
+        "title": "Command arguments, permission locks and schedules",
+        "summary": "Commands can take arguments and be locked to a permission, and your bot can now act by itself at a time of day in any time zone.",
+        "changes": [
+            (
+                "new",
+                "Arguments on the command block: write names like “user reason” and use what people typed as $argUser and $argReason, or with the new “argument” block. The last argument takes the rest of the message, and a command with a missing argument tells people how to use it.",
+            ),
+            (
+                "new",
+                "“Who can use it” on the command block locks a command to people with a permission (manage messages, kick members, ban members and more). Everyone else is told they can't use it. Administrators and the community owner always can.",
+            ),
+            (
+                "new",
+                "“when the clock reaches …” runs at a time of day, on the days you pick, in the time zone you pick (with summer time handled for you). “every … minutes or hours” runs again and again.",
+            ),
+            (
+                "new",
+                "“current time in …” gives the time, date, day of the week, hour or minute in a time zone.",
+            ),
+            (
+                "improved",
+                "The warning about moderation blocks that anyone could use no longer appears when the command is locked to a permission.",
+            ),
+            (
+                "docs",
+                "Two new guide sections: “Commands: arguments and locks” and “Schedules and time zones”. Exporting and importing your blocks (Get code menu) was added earlier and is explained under “Save and load your blocks”.",
+            ),
+        ],
+    },
+    {
+        "date": "2026-10-25",
+        "title": "Change a nickname with a block",
+        "summary": "A new block in the Messages family sets or removes a person's nickname.",
+        "changes": [
+            (
+                "new",
+                "“change the nickname of the person” sets someone's nickname in your community. Leave the nickname empty to remove it. The bot needs the Manage Nicknames permission and a role above theirs.",
+            ),
+        ],
+    },
+    {
         "date": "2026-10-18",
         "title": "The editor stays where you are while you add blocks",
         "summary": "Two fixes for the editor jumping back to the top and refusing new blocks after a save.",

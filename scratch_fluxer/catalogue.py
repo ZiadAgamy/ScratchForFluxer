@@ -140,6 +140,95 @@ CHANNEL_KIND_OPTIONS = [
 ]
 THREAD_KIND_OPTIONS = [["public", "public"], ["private", "private"]]
 THREAD_CHANGE_OPTIONS = [["close", "archive"], ["reopen", "unarchive"], ["lock", "lock"], ["unlock", "unlock"]]
+#: Who may use a command: ``[label, Permissions name in fluxer.py]``. "everyone" means no lock.
+COMMAND_WHO_OPTIONS = [
+    ["everyone", "everyone"],
+    ["people who can manage the community", "MANAGE_GUILD"],
+    ["administrators", "ADMINISTRATOR"],
+    ["people who can manage roles", "MANAGE_ROLES"],
+    ["people who can manage channels", "MANAGE_CHANNELS"],
+    ["people who can manage messages", "MANAGE_MESSAGES"],
+    ["people who can manage nicknames", "MANAGE_NICKNAMES"],
+    ["people who can kick members", "KICK_MEMBERS"],
+    ["people who can ban members", "BAN_MEMBERS"],
+    ["people who can mute (time out) members", "MODERATE_MEMBERS"],
+]
+#: Time zones for the schedule blocks: ``[label, IANA name]``. The name is what Python's zoneinfo understands.
+ZONE_OPTIONS = [
+    ["UTC", "UTC"],
+    ["Cairo (Egypt)", "Africa/Cairo"],
+    ["Riyadh (Saudi Arabia)", "Asia/Riyadh"],
+    ["Dubai (UAE)", "Asia/Dubai"],
+    ["Baghdad (Iraq)", "Asia/Baghdad"],
+    ["Amman (Jordan)", "Asia/Amman"],
+    ["Beirut (Lebanon)", "Asia/Beirut"],
+    ["Damascus (Syria)", "Asia/Damascus"],
+    ["Jerusalem", "Asia/Jerusalem"],
+    ["Kuwait", "Asia/Kuwait"],
+    ["Qatar", "Asia/Qatar"],
+    ["Muscat (Oman)", "Asia/Muscat"],
+    ["Casablanca (Morocco)", "Africa/Casablanca"],
+    ["Algiers (Algeria)", "Africa/Algiers"],
+    ["Tunis (Tunisia)", "Africa/Tunis"],
+    ["Tripoli (Libya)", "Africa/Tripoli"],
+    ["Khartoum (Sudan)", "Africa/Khartoum"],
+    ["Istanbul (Turkey)", "Europe/Istanbul"],
+    ["Tehran (Iran)", "Asia/Tehran"],
+    ["Nairobi (Kenya)", "Africa/Nairobi"],
+    ["Lagos (Nigeria)", "Africa/Lagos"],
+    ["Johannesburg (South Africa)", "Africa/Johannesburg"],
+    ["London (UK)", "Europe/London"],
+    ["Paris (France)", "Europe/Paris"],
+    ["Berlin (Germany)", "Europe/Berlin"],
+    ["Madrid (Spain)", "Europe/Madrid"],
+    ["Rome (Italy)", "Europe/Rome"],
+    ["Athens (Greece)", "Europe/Athens"],
+    ["Kyiv (Ukraine)", "Europe/Kyiv"],
+    ["Moscow (Russia)", "Europe/Moscow"],
+    ["Karachi (Pakistan)", "Asia/Karachi"],
+    ["Kolkata (India)", "Asia/Kolkata"],
+    ["Dhaka (Bangladesh)", "Asia/Dhaka"],
+    ["Jakarta (Indonesia)", "Asia/Jakarta"],
+    ["Bangkok (Thailand)", "Asia/Bangkok"],
+    ["Singapore", "Asia/Singapore"],
+    ["Shanghai (China)", "Asia/Shanghai"],
+    ["Tokyo (Japan)", "Asia/Tokyo"],
+    ["Seoul (Korea)", "Asia/Seoul"],
+    ["Sydney (Australia)", "Australia/Sydney"],
+    ["Auckland (New Zealand)", "Pacific/Auckland"],
+    ["New York (US East)", "America/New_York"],
+    ["Chicago (US Central)", "America/Chicago"],
+    ["Denver (US Mountain)", "America/Denver"],
+    ["Los Angeles (US West)", "America/Los_Angeles"],
+    ["Toronto (Canada)", "America/Toronto"],
+    ["Mexico City", "America/Mexico_City"],
+    ["São Paulo (Brazil)", "America/Sao_Paulo"],
+    ["Buenos Aires (Argentina)", "America/Argentina/Buenos_Aires"],
+]
+#: Days a scheduled block runs on: the value is the weekday numbers (Monday is 0).
+DAY_OPTIONS = [
+    ["every day", "0123456"],
+    ["on weekdays (Mon to Fri)", "01234"],
+    ["on weekends (Sat and Sun)", "56"],
+    ["on Mondays", "0"],
+    ["on Tuesdays", "1"],
+    ["on Wednesdays", "2"],
+    ["on Thursdays", "3"],
+    ["on Fridays", "4"],
+    ["on Saturdays", "5"],
+    ["on Sundays", "6"],
+]
+INTERVAL_UNIT_OPTIONS = [["minutes", "minutes"], ["hours", "hours"]]
+TIME_PART_OPTIONS = [
+    ["time (like 14:05)", "time"],
+    ["date (like 2026-11-12)", "date"],
+    ["day of the week (like Monday)", "weekday"],
+    ["hour (0 to 23)", "hour"],
+    ["minute (0 to 59)", "minute"],
+    ["day of the month", "day"],
+    ["month number", "month"],
+    ["year", "year"],
+]
 YES_NO_OPTIONS = [["no", "False"], ["yes", "True"]]
 #: ``[label, rgb number]``: "no colour" first, then the same colours the card pop-up offers.
 ROLE_COLOR_OPTIONS = [["no colour", "0"], *[[label, str(rgb)] for label, _name, rgb in EMBED_COLORS]]
@@ -297,7 +386,35 @@ _SPECS: list[dict[str, Any]] = [
         "events",
         "hat",
         ["when the command", field("NAME", "ping", max_length=24), "is used"],
-        tooltip="Runs when a message starts with your prefix and this name, for example !ping.",
+        ["who can use it", menu("WHO", COMMAND_WHO_OPTIONS)],
+        ["arguments", field("ARGS", "", max_length=80)],
+        tooltip=(
+            "Runs when a message starts with your prefix and this name, for example !ping. “Who can use it” locks the "
+            "command to people with a permission (others are told they can't). “Arguments” names the words people "
+            "write after the command, like: user reason. Use them as $argUser and $argReason, or with the “argument” "
+            "block. The last argument takes the rest of the message. Add ? to make one optional (reason?)."
+        ),
+    ),
+    block(
+        "sff_event_schedule",
+        "events",
+        "hat",
+        ["when the clock reaches", field("TIME", "09:00", max_length=5), menu("DAYS", DAY_OPTIONS)],
+        ["in the time zone", menu("ZONE", ZONE_OPTIONS)],
+        tooltip=(
+            "Runs by itself at a time of day, in the time zone you choose (24-hour clock, like 09:00 or 21:30). "
+            "There is no message here, so use “send … to channel” with a channel ID to talk."
+        ),
+    ),
+    block(
+        "sff_event_interval",
+        "events",
+        "hat",
+        ["every", field("EVERY", "30", max_length=4), menu("UNIT", INTERVAL_UNIT_OPTIONS)],
+        tooltip=(
+            "Runs again and again, after this much time (at least 1 minute, at most 7 days). The first run is after "
+            "the first wait. There is no message here, so use “send … to channel” with a channel ID to talk."
+        ),
     ),
     block(
         "sff_event_member_join",
@@ -731,6 +848,29 @@ _SPECS: list[dict[str, Any]] = [
         ["message text"],
         tooltip="What the message says, exactly as it was written (a command message includes the prefix).",
         needs=("message",),
+        returns="text",
+    ),
+    block(
+        "sff_time_now",
+        "info",
+        "value",
+        ["current", menu("PART", TIME_PART_OPTIONS), "in", menu("ZONE", ZONE_OPTIONS)],
+        tooltip=(
+            "The time, date or day of the week right now in a time zone. Hours and minutes use a 24-hour clock. "
+            "Use “number from” to do maths with the hour or the minute."
+        ),
+        returns="text",
+    ),
+    block(
+        "sff_command_arg",
+        "info",
+        "value",
+        ["argument", field("NAME", "user", max_length=24)],
+        tooltip=(
+            "One of the arguments you named on the command block (the same as writing $arg and its name, like $argUser). "
+            "Type the argument's name exactly as you wrote it there."
+        ),
+        needs=("command",),
         returns="text",
     ),
     block(
@@ -1388,6 +1528,7 @@ VARIABLE_CODENAMES: list[tuple[str, str]] = [
     ("var", "The value of a variable"),
     ("list", "All the items of a list, separated by commas"),
     ("count", "How many items a list has"),
+    ("arg", "A word written after the command, named on the command block (only inside that command)"),
 ]
 
 CODENAMES: dict[str, str] = {name.lower(): type_ for name, type_, _group, _what in CODENAME_LIST}

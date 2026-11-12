@@ -31,6 +31,8 @@ class FakeHTTP:
     def __init__(self) -> None:
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
         self.member_roles: dict[int, list[str]] = {}  # user id -> role ids that Fluxer says the person has
+        self.role_permissions: dict[str, int] = {}  # role id -> permission bits (the "everyone" role has the guild's id)
+        self.owner_id = 999
 
     def __getattr__(self, name: str):
         if name.startswith("__"):
@@ -74,7 +76,9 @@ class FakeHTTP:
                 "timestamp": "2026-10-10T10:00:00+00:00",
             }
         if name == "get_guild":
-            return {"id": str(args[0]), "name": "Test community"}
+            return {"id": str(args[0]), "name": "Test community", "owner_id": str(self.owner_id)}
+        if name == "get_guild_roles":
+            return [{"id": role, "name": role, "permissions": str(bits)} for role, bits in self.role_permissions.items()]
         if name == "get_guild_member":
             return {"user": user_data(int(args[1]), "member"), "roles": self.member_roles.get(int(args[1]), [])}
         return None

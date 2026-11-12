@@ -18,7 +18,7 @@ DEMO = {"prefix": "!", "ready": "Bot is online!", "command": "ping", "reply": "P
 #: Three blocks to show for each family: ``(block type, values typed into it)``. Values are keyed by the names of the
 #: block's fields and sockets in the catalogue; anything left out shows the block's own starting value.
 EXAMPLES: dict[str, list[tuple[str, dict[str, str]]]] = {
-    "events": [("sff_event_ready", {}), ("sff_event_message", {}), ("sff_event_command", {"NAME": "ping"})],
+    "events": [("sff_event_ready", {}), ("sff_event_message", {}), ("sff_event_command", {"NAME": "ping", "WHO": "everyone", "ARGS": ""})],
     "bot": [
         ("sff_set_custom_status", {"TEXT": "Learning blocks"}),
         ("sff_set_status", {}),

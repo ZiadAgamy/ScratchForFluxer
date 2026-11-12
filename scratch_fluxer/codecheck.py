@@ -19,7 +19,9 @@ import re
 
 from .assets import is_safe_name
 
-ALLOWED_IMPORTS = frozenset({"asyncio", "datetime", "json", "logging", "math", "os", "random", "time", "fluxer"})
+ALLOWED_IMPORTS = frozenset(
+    {"asyncio", "datetime", "json", "logging", "math", "os", "random", "time", "zoneinfo", "fluxer"}
+)
 
 #: Built-in names the generated code may use. Everything else in ``dir(builtins)`` is refused.
 ALLOWED_BUILTINS = frozenset(
@@ -48,7 +50,8 @@ ALLOWED_BUILTINS = frozenset(
 #: What may be taken from each imported module (``fluxer`` is the library the bot runs on).
 MODULE_ATTRS: dict[str, frozenset[str]] = {
     "os": frozenset({"environ"}),
-    "asyncio": frozenset({"sleep"}),
+    "asyncio": frozenset({"sleep", "create_task"}),
+    "zoneinfo": frozenset({"ZoneInfo"}),
     "datetime": frozenset({"datetime", "timezone", "timedelta"}),
     "json": frozenset({"loads"}),
     "logging": frozenset({"basicConfig", "getLogger", "INFO"}),
@@ -97,6 +100,14 @@ ALLOWED_ATTRS = frozenset(
         "now",
         "utc",
         "isoformat",
+        "weekday",
+        "hour",
+        "minute",
+        "day",
+        "month",
+        "year",
+        "toordinal",
+        "zfill",
         "isdigit",
         "isalnum",
         "edit",
@@ -172,6 +183,39 @@ PRIVATE_ATTRS = frozenset({"_gateway", "_send"})
 _PLAIN_FILENAME = re.compile(r"^(image|thumbnail)\.[a-z0-9]{1,5}$")
 
 DECORATOR_METHODS = frozenset({"event", "command", "on"})
+#: The permissions a command can be locked to: ``@fluxer.checks.has_permission(fluxer.Permissions.NAME)``.
+LOCK_PERMISSIONS = frozenset(
+    {
+        "MANAGE_GUILD",
+        "ADMINISTRATOR",
+        "MANAGE_ROLES",
+        "MANAGE_CHANNELS",
+        "MANAGE_MESSAGES",
+        "MANAGE_NICKNAMES",
+        "KICK_MEMBERS",
+        "BAN_MEMBERS",
+        "MODERATE_MEMBERS",
+    }
+)
+
+
+def _is_permission_lock(node: ast.AST) -> bool:
+    """True for exactly ``@fluxer.checks.has_permission(fluxer.Permissions.NAME)`` with a permission from the list."""
+    if not (isinstance(node, ast.Call) and len(node.args) == 1 and not node.keywords):
+        return False
+    func, arg = node.func, node.args[0]
+    return (
+        isinstance(func, ast.Attribute)
+        and func.attr == "has_permission"
+        and isinstance(func.value, ast.Attribute)
+        and func.value.attr == "checks"
+        and _is_name(func.value.value, "fluxer")
+        and isinstance(arg, ast.Attribute)
+        and arg.attr in LOCK_PERMISSIONS
+        and isinstance(arg.value, ast.Attribute)
+        and arg.value.attr == "Permissions"
+        and _is_name(arg.value.value, "fluxer")
+    )
 CONSTANT_TYPES = (str, int, float, bool, type(None))
 
 #: The AST node types the generated code is made of.
@@ -473,12 +517,14 @@ class _Checker(ast.NodeVisitor):
     def _function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         self.check_bound(node, node.name)
         for decorator in node.decorator_list:
+            if _is_permission_lock(decorator):
+                continue
             target = decorator.func if isinstance(decorator, ast.Call) else decorator
             ok = (
                 isinstance(target, ast.Attribute) and _is_name(target.value, "bot") and target.attr in DECORATOR_METHODS
             )
             if not ok:
-                self.fail(decorator, "only @bot.event, @bot.command() and @bot.on() may decorate a function")
+                self.fail(decorator, "only @bot.event, @bot.command(), @bot.on() and a permission lock may decorate a function")
         args = node.args
         if args.posonlyargs or args.vararg:
             self.fail(node, "this kind of parameter is not allowed")
@@ -491,7 +537,8 @@ class _Checker(ast.NodeVisitor):
                 self.fail(arg, "only `str` annotations are allowed")
         if node.returns is not None:
             self.fail(node, "return annotations are not allowed")
-        for child in [*node.decorator_list, args.defaults, args.kw_defaults, node.body]:
+        decorators = [d for d in node.decorator_list if not _is_permission_lock(d)]
+        for child in [*decorators, args.defaults, args.kw_defaults, node.body]:
             for item in child if isinstance(child, list) else [child]:
                 if item is not None:
                     self.visit(item)

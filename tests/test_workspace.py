@@ -338,8 +338,12 @@ class TestWhatABlockHolds:
 
     def test_a_missing_text_box_takes_its_default(self):
         assert one_block("sff_text")["fields"] == {"TEXT": ""}
-        assert one_block("sff_event_command")["fields"] == {"NAME": "ping"}
-        assert one_block("sff_event_command", fields={"NAME": None})["fields"] == {"NAME": "ping"}
+        assert one_block("sff_event_command")["fields"] == {"NAME": "ping", "WHO": "everyone", "ARGS": ""}
+        assert one_block("sff_event_command", fields={"NAME": None})["fields"] == {
+            "NAME": "ping",
+            "WHO": "everyone",
+            "ARGS": "",
+        }
         assert one_block("sff_bot_setup")["fields"] == {"PREFIX": "!"}
 
     def test_a_box_keeps_to_its_own_length(self):
