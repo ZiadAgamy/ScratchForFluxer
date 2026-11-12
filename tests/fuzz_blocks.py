@@ -273,7 +273,12 @@ HAT_PROVIDES = {
     "sff_event_bot_join": {"community"},
     "sff_event_reaction_add": {"reaction"},
     "sff_event_reaction_remove": {"reaction"},
+    "sff_event_schedule": set(),
+    "sff_event_interval": set(),
 }
+
+
+HAT_FIELDS = ("sff_event_schedule", "sff_event_interval")
 
 
 class Randomizer:
@@ -387,11 +392,21 @@ class Randomizer:
     def script(self, depth: int = 4) -> dict[str, Any]:
         type_ = self.rng.choice(self.hats)
         names = ["ping", "say hi", "x1", "ping", "hello-there"]
-        fields = {"NAME": self.rng.choice(names + [self.text()[:24]] if self.chance(self.mistakes) else names)}
+        fields: dict[str, Any] = {"NAME": self.rng.choice(names + [self.text()[:24]] if self.chance(self.mistakes) else names)}
+        fields["WHO"] = self.rng.choice([option[1] for option in catalogue.COMMAND_WHO_OPTIONS])
+        fields["ARGS"] = self.rng.choice(["", "user", "user reason?", "a b c", "9x", "name name", self.text()[:30]])
+        if type_ == "sff_event_schedule":
+            fields = {
+                "TIME": self.rng.choice(["09:00", "23:59", "7:30", "25:00", "x", self.text()[:5]]),
+                "DAYS": self.rng.choice([option[1] for option in catalogue.DAY_OPTIONS]),
+                "ZONE": self.rng.choice([option[1] for option in catalogue.ZONE_OPTIONS]),
+            }
+        elif type_ == "sff_event_interval":
+            fields = {"EVERY": self.rng.choice(["1", "30", "0", "x", "99999", self.text()[:4]]), "UNIT": self.rng.choice(["minutes", "hours"])}
         self.provides = HAT_PROVIDES[type_]
         steps = self.stack(depth, self.rng.randint(0, 5))
         self.provides = set()
-        return hat(type_, *steps, fields=fields if type_ == "sff_event_command" else None)
+        return hat(type_, *steps, fields=fields if type_ in ("sff_event_command", *HAT_FIELDS) else None)
 
     def workspace(self, *, scripts: int | None = None, depth: int = 4) -> dict[str, Any]:
         count = self.rng.randint(0, 5) if scripts is None else scripts

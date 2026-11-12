@@ -19,7 +19,7 @@ FAMILY_GUIDE: dict[str, dict[str, str]] = {
             "your community. Every script of blocks starts with a yellow event block, and the blocks snapped under it "
             "run each time that event happens. Blocks that aren't under an event never run."
         ),
-        "try": "Use <strong>when the command ping is used</strong> and snap <strong>reply with Pong!</strong> under it. Now typing <code>!ping</code> in Fluxer makes your bot answer.",
+        "try": "Use <strong>when the command ping is used</strong> and snap <strong>reply with Pong!</strong> under it. Now typing <code>!ping</code> in Fluxer makes your bot answer. Commands can also take arguments and be locked to a permission, and two blocks run on the clock (see <a href=\"#commands\">Commands</a> and <a href=\"#schedules\">Schedules</a>).",
     },
     "bot": {
         "intro": (

@@ -67,6 +67,13 @@ GENERATED_NAMES = frozenset(
         "uptime_seconds",
         "uptime_text",
         "send_webhook",
+        "split_args",
+        "time_in",
+        "keep_schedule",
+        "start_schedules",
+        "start_schedules_when_ready",
+        "SCHEDULE_TASKS",
+        "zoneinfo",
         "as_id",
         "moderate",
         "has_role",
@@ -275,6 +282,80 @@ HELPERS: dict[str, dict[str, Any]] = {
     """A user or role ID from text. A mention like <@123> works too. Anything else gives 0."""
     digits = "".join(ch for ch in str(value) if ch.isdigit())
     return int(digits) if digits else 0
+''',
+    },
+    "split_args": {
+        "imports": (),
+        "needs": (),
+        "source": '''def split_args(text, count):
+    """The words written after a command as exactly `count` pieces; the last piece keeps the rest of the text."""
+    words = str(text).split(None, count - 1) if count > 1 else [str(text).strip()]
+    result = []
+    for word in words:
+        result.append(word.strip())
+    while len(result) < count:
+        result.append("")
+    return result
+''',
+    },
+    "time_in": {
+        "imports": ("datetime", "zoneinfo"),
+        "needs": (),
+        "source": '''def time_in(zone, part):
+    """The time, date or day of the week right now in a time zone (the zone is one of the names in the blocks)."""
+    now = datetime.datetime.now(zoneinfo.ZoneInfo(zone))
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    if part == "weekday":
+        return days[now.weekday()]
+    if part == "hour":
+        return str(now.hour)
+    if part == "minute":
+        return str(now.minute)
+    if part == "day":
+        return str(now.day)
+    if part == "month":
+        return str(now.month)
+    if part == "year":
+        return str(now.year)
+    date = str(now.year) + "-" + str(now.month).zfill(2) + "-" + str(now.day).zfill(2)
+    if part == "date":
+        return date
+    return str(now.hour).zfill(2) + ":" + str(now.minute).zfill(2)
+''',
+    },
+    "keep_schedule": {
+        "imports": ("asyncio", "datetime", "zoneinfo"),
+        "needs": (),
+        "source": '''SCHEDULE_TASKS = []
+
+
+async def keep_schedule(job, mode, days, at, zone, seconds):
+    """Runs `job` again and again: at a time of day in a time zone, or every few seconds. A problem is printed."""
+    done = ""
+    while True:
+        try:
+            if mode == "every":
+                await asyncio.sleep(seconds)
+                await job()
+            else:
+                now = datetime.datetime.now(zoneinfo.ZoneInfo(zone))
+                clock = str(now.hour).zfill(2) + ":" + str(now.minute).zfill(2)
+                stamp = str(now.toordinal()) + " " + clock
+                if clock == at and stamp != done and str(now.weekday()) in days:
+                    done = stamp
+                    await job()
+                await asyncio.sleep(10)
+        except Exception:
+            print("A scheduled block had a problem. It will run again at its next time.")
+            await asyncio.sleep(10)
+
+
+def start_schedules(jobs):
+    """Starts every scheduled block, once (the bot can connect to Fluxer more than once)."""
+    if SCHEDULE_TASKS:
+        return
+    for job in jobs:
+        SCHEDULE_TASKS.append(asyncio.create_task(keep_schedule(job[0], job[1], job[2], job[3], job[4], job[5])))
 ''',
     },
     "first_mention": {
@@ -499,6 +580,9 @@ HELPER_ORDER = [
     "random_number",
     "as_id",
     "first_mention",
+    "split_args",
+    "time_in",
+    "keep_schedule",
     "reaction_matches",
     "has_role",
     "moderate",
@@ -512,7 +596,7 @@ HELPER_ORDER = [
     *helpers_manage.ORDER,
 ]
 
-STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random", "time"]
+STDLIB_IMPORT_ORDER = ["asyncio", "datetime", "json", "logging", "math", "os", "random", "time", "zoneinfo"]
 
 
 # --------------------------------------------------------------------------------------------- small utilities
@@ -618,7 +702,7 @@ def variable_identifier(name: str) -> str:
     if not (text[0].isalpha() or text[0] == "_"):
         text = "v_" + text
     text = _identifier_safe(text)
-    if text in RESERVED_NAMES or text.startswith("on_"):
+    if text in RESERVED_NAMES or text.startswith("on_") or text.startswith("arg_"):
         text += "_"
     return text
 
@@ -834,6 +918,8 @@ class Context:
     message_var: str | None = None
     member: bool = False
     command_text: bool = False
+    args: dict[str, str] = field(default_factory=dict)  # a command's argument names (squashed) -> python names
+    locked: bool = False  # the command is only for people with a permission
     moderation: Node | None = None  # the first block in this script that acts on other people
     assigned: set[str] = field(default_factory=set)  # variables this script gives a value (they need ``global``)
     loops: int = 0  # how many loops the block being written sits inside
@@ -895,6 +981,8 @@ class Generator:
         self.name_counters: dict[str, int] = {}
         self.commands: dict[str, str] = {}
         self.event_counts: dict[str, int] = {}
+        self.prefix = "!"
+        self.schedules: list[str] = []  # one line each for the list the ready handler starts
 
     # ---- diagnostics
     def _add(self, level: str, message: str, node: Node | None) -> None:
@@ -996,6 +1084,10 @@ class Generator:
             if prefix == "list":
                 return Expr(f'", ".join(str(item) for item in {ident})', P_ATOM, "text")
             return Expr(f"len({ident})", P_ATOM, "number")
+        if lowered.startswith("arg") and ctx.args:
+            ident = ctx.args.get(_squash(text[3:].lstrip(": ")))
+            if ident is not None:
+                return Expr(ident, P_ATOM, "text")
         return None
 
     def codetext(self, node: Node, ctx: Context, text: str) -> Expr:
@@ -1718,6 +1810,25 @@ def _command_text(gen: Generator, node: Node, ctx: Context) -> Expr:
     return Expr("text", P_ATOM, "text")
 
 
+def _time_now(gen: Generator, node: Node, ctx: Context) -> Expr:
+    gen.need("time_in")
+    zone = gen.menu_value(node, "ZONE")
+    part = gen.menu_value(node, "PART")
+    return Expr(f"time_in({python_string(zone)}, {python_string(part)})", P_ATOM, "text")
+
+
+def _command_arg(gen: Generator, node: Node, ctx: Context) -> Expr:
+    name = gen.field_text(node, "NAME")
+    ident = ctx.args.get(_squash(name))
+    if ident is None:
+        if ctx.args:
+            gen.warn(f"This command has no argument called “{name}”. Its arguments are written on the command block.", node)
+        else:
+            gen.warn("This command has no arguments yet. Write their names on the command block (for example: user reason).", node)
+        return Expr('""', P_ATOM, "text", "")
+    return Expr(ident, P_ATOM, "text")
+
+
 def _community_id(gen: Generator, node: Node, ctx: Context) -> Expr:
     if ctx.kind == "bot_join":
         source = "guild.id"
@@ -1921,6 +2032,8 @@ VALUES.update(
         "sff_number": _number_literal_block,
         "sff_boolean": _boolean_block,
         "sff_command_text": _command_text,
+        "sff_command_arg": _command_arg,
+        "sff_time_now": _time_now,
         "sff_community_id": _community_id,
         "sff_community_name": _community_name,
         "sff_variable": _variable_value,
@@ -1951,7 +2064,10 @@ _EVENTS = {
     "sff_event_reaction_add": ("raw_reaction_add", "on_raw_reaction_add", "event", "reaction_add"),
     "sff_event_reaction_remove": ("raw_reaction_remove", "on_raw_reaction_remove", "event", "reaction_remove"),
 }
-HAT_TYPES = frozenset(_EVENTS) | {"sff_event_command"}
+SCHEDULE_HATS = frozenset({"sff_event_schedule", "sff_event_interval"})
+HAT_TYPES = frozenset(_EVENTS) | {"sff_event_command"} | SCHEDULE_HATS
+MAX_SCHEDULES = 10
+_CLOCK_TIME = re.compile(r"([01]?\d|2[0-3]):([0-5]\d)")
 
 
 def _contains(first: Node | None, block_type: str, depth: int = 0) -> bool:
@@ -1964,6 +2080,57 @@ def _contains(first: Node | None, block_type: str, depth: int = 0) -> bool:
             return True
         node = node.next
     return False
+
+
+MAX_ARGUMENTS = 8
+
+
+def _command_arguments(gen: Generator, hat: Node) -> list[tuple[str, str, bool]]:
+    """The arguments named on a command block: ``(name, python name, optional)``. A name ends with ``?`` if optional."""
+    if "ARGS" not in hat.fields:
+        return []
+    found: list[tuple[str, str, bool]] = []
+    seen: set[str] = set()
+    for word in gen.field_text(hat, "ARGS").split():
+        optional = word.endswith("?")
+        name = word.rstrip("?")
+        if not name or not name[0].isalpha() or not all(ch == "_" or ch.isalnum() for ch in name):
+            gen.warn(f"“{clean_text(word, 30)}” can't be an argument name. Use letters, digits and _, starting with a letter.", hat)
+            continue
+        squashed = _squash(name)
+        if squashed in seen:
+            gen.warn(f"The argument “{name}” is written twice. The second one is ignored.", hat)
+            continue
+        if len(found) >= MAX_ARGUMENTS:
+            gen.warn(f"A command can have up to {MAX_ARGUMENTS} arguments. “{name}” and the ones after it are ignored.", hat)
+            break
+        seen.add(squashed)
+        found.append((name, "arg_" + variable_identifier(name).strip("_"), optional))
+    return found
+
+
+def _schedule_spec(gen: Generator, hat: Node) -> str:
+    """The rest of a schedule's line in the list the ready handler starts: mode, days, time, zone and seconds."""
+    if hat.type == "sff_event_interval":
+        raw = gen.field_text(hat, "EVERY").strip()
+        unit = gen.menu_value(hat, "UNIT")
+        count = int(raw) if raw.isdigit() else 0
+        per = 3600 if unit == "hours" else 60
+        seconds = count * per
+        if not 60 <= seconds <= 7 * 24 * 3600:
+            gen.warn("“Every” needs a whole number of at least 1 minute and at most 7 days. 30 minutes is used.", hat)
+            seconds = 1800
+        return f'"every", "", "", "UTC", {seconds}'
+    raw = gen.field_text(hat, "TIME").strip()
+    match = _CLOCK_TIME.fullmatch(raw)
+    if match is None:
+        gen.warn("The time must look like 09:30 (hours from 0 to 23, then minutes). 09:00 is used.", hat)
+        clock = "09:00"
+    else:
+        clock = match.group(1).zfill(2) + ":" + match.group(2)
+    days = gen.menu_value(hat, "DAYS")
+    zone = gen.menu_value(hat, "ZONE")
+    return f'"time", {python_string(days)}, {python_string(clock)}, {python_string(zone)}, 0'
 
 
 def _script(gen: Generator, hat: Node) -> Rows | None:
@@ -1984,7 +2151,38 @@ def _script(gen: Generator, hat: Node) -> Rows | None:
         gen.commands[name] = hat.id
         ctx = Context("command", hat, message_var="ctx")
         decorators.append(f"@bot.command(name={python_string(name)})" if renamed else "@bot.command()")
+        who = gen.menu_value(hat, "WHO") if "WHO" in hat.fields else "everyone"
+        if who != "everyone":
+            decorators.append(f"@fluxer.checks.has_permission(fluxer.Permissions.{who})")
+            ctx.locked = True
         param = "ctx"
+        arguments = _command_arguments(gen, hat)
+        if arguments:
+            gen.need("split_args")
+            ctx.command_text = True
+            names = ", ".join(ident for _name, ident, _optional in arguments)
+            pick = "[0]" if len(arguments) == 1 else ""  # one argument is the text itself, not a list of one
+            preamble.append((1, f"{names} = split_args(text, {len(arguments)}){pick}"))
+            required = [ident for _name, ident, optional in arguments if not optional]
+            for name_, ident, _optional in arguments:
+                ctx.args[_squash(name_)] = ident
+            if required:
+                usage = f"Usage: {gen.prefix}{name} " + " ".join(
+                    f"[{arg}]" if optional else f"<{arg}>" for arg, _ident, optional in arguments
+                )
+                preamble += [
+                    (1, f"if not ({' and '.join(required)}):"),
+                    (2, f"await ctx.reply({python_string(usage)})"),
+                    (2, "return"),
+                ]
+    elif hat.type in SCHEDULE_HATS:
+        if len(gen.schedules) >= MAX_SCHEDULES:
+            gen.warn(f"A bot can have up to {MAX_SCHEDULES} schedule blocks. This one is ignored.", hat)
+            return None
+        func = gen.unique_function_name("scheduled_job")
+        gen.schedules.append(f"({func}, {_schedule_spec(gen, hat)})")
+        ctx = Context("schedule", hat)
+        param = ""
     else:
         event, func, param_name, kind = _EVENTS[hat.type]
         gen.event_counts[event] = gen.event_counts.get(event, 0) + 1
@@ -2023,6 +2221,7 @@ def _script(gen: Generator, hat: Node) -> Rows | None:
     if (
         ctx.moderation is not None
         and ctx.kind in ("message", "command")
+        and not ctx.locked
         and not _contains(hat.next, "sff_author_has_role")
     ):
         if ctx.moderation.type in MANAGES_COMMUNITY:
@@ -2135,12 +2334,24 @@ def _compile(state: Any, assets: Mapping[str, str] | None) -> CompileResult:
             gen.warn("The command prefix was empty, so “!” is used.", setups[0])
         else:
             prefix = chosen
+    gen.prefix = prefix
 
     scripts: list[Rows] = []
     for hat in sorted(hats, key=lambda n: (n.y, n.x, n.id)):  # top to bottom, as they are laid out in the editor
         rows = _script(gen, hat)
         if rows is not None:
             scripts.append(rows)
+
+    if gen.schedules:
+        gen.need("keep_schedule")
+        starter = Rows()
+        starter.add(0, '@bot.on("ready")')
+        starter.add(0, "async def start_schedules_when_ready():")
+        starter.add(1, "start_schedules([")
+        for line in gen.schedules:
+            starter.add(2, line + ",")
+        starter.add(1, "])")
+        scripts.append(starter)
 
     needed = set(gen.helpers)
     for name in list(needed):
@@ -2261,7 +2472,7 @@ def default_workspace(
                     "id": "command",
                     "x": 40,
                     "y": 310,
-                    "fields": {"NAME": command},
+                    "fields": {"NAME": command, "WHO": "everyone", "ARGS": ""},
                     "next": {
                         "block": {
                             "type": "sff_reply",

@@ -81,6 +81,30 @@ class TestWhatIsAccepted:
         codecheck.check(wrap(handler, "asyncio"))
 
 
+class TestPermissionLocks:
+    LOCK = "@bot.command()\n@fluxer.checks.has_permission(fluxer.Permissions.KICK_MEMBERS)\nasync def f(ctx):\n    pass"
+
+    def test_the_lock_the_compiler_writes_is_accepted(self):
+        codecheck.check(wrap(self.LOCK))
+
+    @pytest.mark.parametrize(
+        "decorator",
+        [
+            "@fluxer.checks.has_permission(fluxer.Permissions.SEND_MESSAGES)",  # not a permission a command is locked to
+            "@fluxer.checks.has_permission(fluxer.Permissions.KICK_MEMBERS | fluxer.Permissions.BAN_MEMBERS)",
+            "@fluxer.checks.has_permission(5)",
+            "@fluxer.checks.has_role(id=1)",
+            "@os.checks.has_permission(fluxer.Permissions.KICK_MEMBERS)",
+            "@fluxer.checks.has_permission(fluxer.Permissions.KICK_MEMBERS, 1)",
+            "@fluxer.checks.has_permission(permission=fluxer.Permissions.KICK_MEMBERS)",
+        ],
+    )
+    def test_any_other_decorator_is_refused(self, decorator):
+        code = f"@bot.command()\n{decorator}\nasync def f(ctx):\n    pass"
+        with pytest.raises(codecheck.UnsafeCode, match="may decorate"):
+            codecheck.check(wrap(code))
+
+
 class TestWhatIsRefused:
     @pytest.mark.parametrize(
         ("middle", "fragment"),
