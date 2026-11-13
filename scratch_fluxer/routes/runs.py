@@ -6,7 +6,8 @@ its state and the messages it has written so far. The editor asks for it about o
 
 * The token is read from the database for the length of one request, sent to the runner, and never put in any answer.
 * A bot's blocks are only run if they compile without errors, exactly as they are saved.
-* A person can only run, stop and read their own bots (someone else's bot id looks like a bot that doesn't exist).
+* A person can only run, stop and read bots they own, or that were shared with them with that permission (someone
+  else's bot id looks like a bot that doesn't exist).
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from ..runner import service
 from ..runner.clients import OFF_MESSAGE
 from ..runner.protocol import RUN_ID_RE, RunnerError, StartRequest
 from ..security import TokenVault
-from .bots import get_owned_bot
+from .. import access as acl
 
 log = logging.getLogger("scratch_fluxer.runs")
 router = APIRouter()
@@ -60,7 +61,7 @@ def _move_to_newest_key(db: Session, bot: Bot, vault: TokenVault) -> str:
 def _prepare(db: Session, user_id: str, bot_id: str) -> tuple[StartRequest, str]:
     """What the runner needs to start this bot (its code, the files the code uses and its token), and the saved
     token as it is in the database, to notice later if the bot was changed while it was starting."""
-    bot = get_owned_bot(db, user_id, bot_id)
+    bot = acl.get_access(db, user_id, bot_id, "run").bot
     loaded = store.load(db, bot)
     if not loaded.compiled.ok:
         raise HTTPException(
@@ -80,11 +81,16 @@ def _prepare(db: Session, user_id: str, bot_id: str) -> tuple[StartRequest, str]
     if used:
         rows = db.execute(select(Asset.name, Asset.data).where(Asset.bot_id == bot.id, Asset.name.in_(used))).all()
         files = [(row.name, bytes(row.data)) for row in rows]
-    return StartRequest(bot_id=bot.id, owner=user_id, code=loaded.compiled.code, token=token, files=files), saved
+    # A run counts against the bot's owner (the runner limits how many bots one person runs), whoever pressed Run.
+    return StartRequest(bot_id=bot.id, owner=bot.user_id, code=loaded.compiled.code, token=token, files=files), saved
 
 
-def _owned(db: Session, user_id: str, bot_id: str) -> str:
-    return get_owned_bot(db, user_id, bot_id).id
+def _may_run(db: Session, user_id: str, bot_id: str) -> str:
+    return acl.get_access(db, user_id, bot_id, "run").bot.id
+
+
+def _may_read(db: Session, user_id: str, bot_id: str) -> str:
+    return acl.get_access(db, user_id, bot_id, ("run", "console")).bot.id
 
 
 def _mark_run(db: Session, bot_id: str, saved_token: str) -> bool:
@@ -105,7 +111,7 @@ def _fail(exc: RunnerError) -> HTTPException:
 async def _start(bot_id: str, user: AuthUser, *, replace: bool) -> JSONResponse:
     runner = service.get_runner()
     if runner.mode == "off":
-        await db_run(_owned, user.id, bot_id)  # a stranger's bot is still a 404
+        await db_run(_may_run, user.id, bot_id)  # a stranger's bot is still a 404
         raise HTTPException(status_code=503, detail=OFF_MESSAGE)
     request, saved_token = await db_run(_prepare, user.id, bot_id)
     try:
@@ -138,7 +144,7 @@ async def restart_bot(bot_id: str, user: AuthUser = Depends(require_csrf)) -> JS
 
 @router.post("/api/bots/{bot_id}/stop", dependencies=[Depends(change_limit)])
 async def stop_bot(bot_id: str, user: AuthUser = Depends(require_csrf)) -> JSONResponse:
-    await db_run(_owned, user.id, bot_id)
+    await db_run(_may_run, user.id, bot_id)
     try:
         return JSONResponse(await service.get_runner().stop(bot_id, "you"))
     except RunnerError as exc:
@@ -156,7 +162,7 @@ async def read_run(
     """
     if not 0 <= after < 2**31 or (run is not None and not RUN_ID_RE.fullmatch(run)):
         raise HTTPException(status_code=422, detail="That request wasn't valid.")
-    await db_run(_owned, user.id, bot_id)
+    await db_run(_may_read, user.id, bot_id)
     try:
         answer: dict[str, Any] = await service.get_runner().status(bot_id, after=after, known=run)
     except RunnerError as exc:

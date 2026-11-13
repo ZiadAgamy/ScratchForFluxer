@@ -138,3 +138,23 @@ def test_an_old_command_block_without_the_new_fields_still_compiles_clean():
     old = hat("sff_event_command", reply("Pong!"), fields={"NAME": "ping"})
     result = compile_workspace(workspace(old))
     assert result.ok and not result.diagnostics and "split_args" not in result.code
+
+
+async def test_an_argument_fits_a_number_socket_like_the_minutes_of_a_mute(tmp_path):
+    mute = block(
+        "sff_timeout_member",
+        inputs={"USER": block("sff_command_arg", fields={"NAME": "user"}), "MINUTES": block("sff_command_arg", fields={"NAME": "minutes"}), "REASON": "$argReason"},
+    )
+    running, _ = build(tmp_path, command("mute", mute, who="MODERATE_MEMBERS", args="user minutes reason?"))
+    running.http.role_permissions = {"700": 0, STAFF_ROLE: int(fluxer.Permissions.MODERATE_MEMBERS)}
+    running.http.member_roles[800] = [STAFF_ROLE]
+    await ready(running)
+    await chat(running, "!mute <@321> 30 too loud")
+    assert len(running.http.named("timeout_guild_member")) == 1
+
+
+def test_the_argument_block_has_no_type_check_so_it_plugs_into_every_socket():
+    from scratch_fluxer import catalogue
+
+    definition = catalogue.blockly_definition(catalogue.BLOCKS["sff_command_arg"])
+    assert "output" not in definition or definition["output"] is None

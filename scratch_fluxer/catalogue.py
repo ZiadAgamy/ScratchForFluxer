@@ -868,10 +868,10 @@ _SPECS: list[dict[str, Any]] = [
         ["argument", field("NAME", "user", max_length=24)],
         tooltip=(
             "One of the arguments you named on the command block (the same as writing $arg and its name, like $argUser). "
-            "Type the argument's name exactly as you wrote it there."
+            "Type the argument's name exactly as you wrote it there. It also fits number sockets, like the minutes of a mute."
         ),
         needs=("command",),
-        returns="text",
+        returns="any",
     ),
     block(
         "sff_command_text",

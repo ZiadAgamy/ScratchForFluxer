@@ -1463,7 +1463,9 @@ button.ed-problem:hover .ed-problem-go {
   }
 
   .ed-run-btn:not(.ed-run-play) span,
-  .ed-get > summary span {
+  .ed-get > summary span,
+  #share-btn span,
+  .ed-shared span {
     display: none;
   }
 
@@ -2647,4 +2649,176 @@ svg[display="none"] {
 
 .emoji-status:empty {
   display: none;
+}
+
+/* ---------------------------------------------------------------- sharing a bot */
+.ed-shared {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+
+/* A person who may only look, or who lacks one permission, doesn't see the controls that would be refused. */
+.ed-shell[data-can-edit="no"] #ed-search,
+.ed-shell[data-can-edit="no"] #tool-undo,
+.ed-shell[data-can-edit="no"] #tool-redo,
+.ed-shell[data-can-edit="no"] #tool-tidy,
+.ed-shell[data-can-edit="no"] #ed-tip,
+.ed-shell[data-can-files="no"] #files-add,
+.ed-shell[data-can-files="no"] #files-drop,
+.ed-shell[data-can-files="no"] .ed-icon-danger {
+  display: none;
+}
+
+.ed-shell[data-can-console="no"] #view-console,
+.ed-shell[data-can-console="no"] #split-console {
+  display: none;
+}
+
+body:has(.ed-shell[data-can-run="no"]) .ed-run,
+body:has(.ed-shell[data-can-export="no"]) .ed-get {
+  display: none;
+}
+
+.share-dialog .dialog-body {
+  max-height: min(42rem, calc(100vh - 3rem));
+  overflow-y: auto;
+}
+
+.share-dialog h3 {
+  margin-top: 1.25rem;
+  font-size: var(--fs-md, 1rem);
+}
+
+.share-checks {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.share-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.share-check.is-fixed {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.share-check input {
+  margin-top: 0.25rem;
+}
+
+.share-check strong,
+.share-check small {
+  display: block;
+}
+
+.share-check small {
+  color: var(--text-3);
+}
+
+.share-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.share-create {
+  margin-top: 0.75rem;
+}
+
+.share-made {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ok);
+  border-radius: var(--r-md, 0.5rem);
+  background: var(--bg-field);
+}
+
+.share-made-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--ok);
+}
+
+.share-made .input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.share-made .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.share-list {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.share-empty {
+  margin: 0;
+  color: var(--text-3);
+}
+
+.share-row,
+.share-person > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.share-row,
+.share-person {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 0.5rem);
+  background: var(--bg-field);
+}
+
+.share-row-main,
+.share-person-name {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+
+.share-row-main small,
+.share-person-name small,
+.share-person-can {
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+
+.share-person > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.share-person > summary::-webkit-details-marker {
+  display: none;
+}
+
+.share-person[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
+.share-person-actions {
+  display: flex;
+  justify-content: flex-end;
 }

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import icon %}
+{% block title %}Join a bot - {{ app_name }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block head %}
+  <meta name="referrer" content="no-referrer">
+  <link rel="stylesheet" href="{{ static('css/bots.css') }}">
+{% endblock %}
+
+{% block content %}
+<section class="container page invite-page">
+  {% if invite.state == "invalid" %}
+  <div class="notice-card panel">
+    <h1>This link isn't valid</h1>
+    <p>It may have been copied wrongly. Ask the owner of the bot to send it again.</p>
+    <a class="btn btn-primary" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+  </div>
+  {% else %}
+  <div class="notice-card panel">
+    <img class="bot-avatar" src="{{ invite.bot.avatar_url }}" alt="" width="64" height="64" referrerpolicy="no-referrer" data-fallback>
+    <h1>{{ invite.bot.name }}</h1>
+    <p class="lead"><strong>{{ invite.owner_name }}</strong> invited you to work on this bot.</p>
+
+    {% if invite.state == "active" %}
+    <h2 class="invite-subtitle">What you will be able to do</h2>
+    <ul class="invite-allowed">
+      <li class="yes">{{ icon("check-circle") }}<span>Look at the blocks and files</span></li>
+      {%- for item in invite.allowed %}
+      <li class="{{ 'yes' if item.yes else 'no' }}">{{ icon("check-circle" if item.yes else "x-circle") }}<span>{{ item.name }}</span></li>
+      {%- endfor %}
+    </ul>
+    <p class="hint">You will never see the bot's token. The owner can change what you can do, or remove you, at any time.</p>
+    <p class="field-error" id="invite-error" role="alert" hidden></p>
+    <button class="btn btn-primary btn-lg" id="invite-join" type="button" data-code="{{ code }}">{{ icon("users-three") }}<span>Join this bot</span></button>
+    {% elif invite.state == "already" %}
+    <p>You are already on this bot.</p>
+    <a class="btn btn-primary btn-lg" href="/bots/{{ invite.bot.id }}/edit">{{ icon("puzzle-piece") }}<span>Open blocks</span></a>
+    {% elif invite.state == "own" %}
+    <p>This is your own bot. Send this link to the person you are inviting.</p>
+    <a class="btn btn-primary btn-lg" href="/bots/{{ invite.bot.id }}/edit">{{ icon("puzzle-piece") }}<span>Open blocks</span></a>
+    {% else %}
+    <p>This link has {{ "been cancelled" if invite.state == "revoked" else ("ended" if invite.state == "expired" else "been used up") }}. Ask the owner for a new one.</p>
+    <a class="btn btn-primary" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ static('js/invite.js') }}" defer></script>
+{% endblock %}

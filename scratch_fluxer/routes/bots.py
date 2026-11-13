@@ -25,7 +25,8 @@ from .. import fluxer_api as fx
 from ..config import Settings, get_settings
 from ..db import db_run
 from ..deps import AuthUser, get_vault, read_json, render, require_csrf, require_user, user_rate_limit
-from ..models import Bot, User, iso_utc
+from ..access import PERMISSION_LIST, parse_perms
+from ..models import Bot, BotMember, User, iso_utc
 from ..runner import service as runner_service
 from ..security import BotTokenFormatError, TokenVault, normalize_bot_token
 
@@ -71,23 +72,24 @@ def get_owned_bot(db: Session, user_id: str, bot_id: str) -> Bot:
     return bot
 
 
-def bot_view(bot: Bot, settings: Settings) -> dict[str, Any]:
-    """Everything the browser may know about a bot. The token (or its ciphertext) is never part of it."""
+def bot_view(bot: Bot, settings: Settings, *, owner: bool = True) -> dict[str, Any]:
+    """Everything the browser may know about a bot. The token (or its ciphertext) is never part of it, and a person
+    the bot is shared with doesn't even see the last characters of it."""
     return {
         "id": bot.id,
         "name": bot.name,
         "bot_username": bot.bot_username,
         "application_name": bot.application_name,
         "avatar_url": fx.avatar_url(settings, bot.bot_user_id, bot.bot_avatar_hash),
-        "token_last4": bot.token_last4,
+        "token_last4": bot.token_last4 if owner else "",
         "updated_at": bot.updated_at,
         "last_run_at": bot.last_run_at,
     }
 
 
-def bot_json(bot: Bot, settings: Settings) -> dict[str, Any]:
+def bot_json(bot: Bot, settings: Settings, *, owner: bool = True) -> dict[str, Any]:
     """``bot_view`` with its dates written as text, ready for a JSON response."""
-    return _jsonable(bot_view(bot, settings))
+    return _jsonable(bot_view(bot, settings, owner=owner))
 
 
 def identity_view(identity: fx.BotIdentity, settings: Settings) -> dict[str, Any]:
@@ -130,6 +132,26 @@ def _list_bots(db: Session, user_id: str) -> list[dict[str, Any]]:
     settings = get_settings()
     rows = db.execute(select(Bot).where(Bot.user_id == user_id).order_by(Bot.updated_at.desc())).scalars().all()
     return [bot_view(bot, settings) for bot in rows]
+
+
+def _list_shared(db: Session, user_id: str) -> list[dict[str, Any]]:
+    """The bots other people shared with this person, with who owns them and what the person may do."""
+    settings = get_settings()
+    rows = db.execute(
+        select(Bot, BotMember, User)
+        .join(BotMember, BotMember.bot_id == Bot.id)
+        .join(User, User.id == Bot.user_id)
+        .where(BotMember.user_id == user_id)
+        .order_by(Bot.updated_at.desc())
+    ).all()
+    found = []
+    for bot, member, owner in rows:
+        perms = parse_perms(member.perms)
+        view = bot_view(bot, settings, owner=False)
+        view["owner_name"] = owner.global_name or owner.username
+        view["can"] = ["look"] + [name.lower() for key, name, _what in PERMISSION_LIST if key in perms]
+        found.append(view)
+    return found
 
 
 def _find_existing(db: Session, user_id: str, bot_user_id: str) -> Bot | None:
@@ -207,7 +229,12 @@ def _delete_bot(db: Session, user_id: str, bot_id: str) -> None:
 async def bots_page(request: Request, user: AuthUser = Depends(require_user)) -> Response:
     settings = get_settings()
     bots = await db_run(_list_bots, user.id)
-    return render(request, "bots.html", {"page": "bots", "bots": bots, "max_bots": settings.max_bots_per_user})
+    shared = await db_run(_list_shared, user.id)
+    return render(
+        request,
+        "bots.html",
+        {"page": "bots", "bots": bots, "shared": shared, "max_bots": settings.max_bots_per_user},
+    )
 
 
 @router.get("/bots/new", include_in_schema=False)

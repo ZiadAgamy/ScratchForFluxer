@@ -131,6 +131,8 @@ class Settings(BaseSettings):
 
     # --- limits ----------------------------------------------------------------
     max_bots_per_user: int = 10
+    max_members_per_bot: int = 5
+    max_invites_per_bot: int = 10
     max_assets_per_bot: int = 40
     max_asset_bytes: int = 2 * 1024 * 1024
     max_assets_total_bytes: int = 8 * 1024 * 1024
