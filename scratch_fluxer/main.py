@@ -23,7 +23,7 @@ from .config import CALLBACK_PATH, ON_VERCEL, PUBLIC_DIR, Settings, get_settings
 from .db import init_db
 from .deps import LoginRequired, peek_user, render
 from .logs import show_our_log
-from .routes import account, assets, auth, bots, editor_api, pages, runs
+from .routes import account, assets, auth, bots, editor_api, invites, pages, runs
 from .runner import service as runner_service
 from .security import security_headers
 
@@ -135,6 +135,7 @@ def create_app() -> FastAPI:
     app.include_router(assets.router)
     app.include_router(editor_api.router)
     app.include_router(runs.router)
+    app.include_router(invites.router)
 
     # ---- static files (Vercel serves public/ from its CDN; locally FastAPI does)
     if not ON_VERCEL:

@@ -618,7 +618,8 @@
   }
 
   // ------------------------------------------------------------------------------------------------ the workspace
-  function create(container) {
+  function create(container, options) {
+    var readOnly = !!(options && options.readOnly); /* a person who may only look: blocks can be read and moved around, not changed */
     var theme = buildTheme();
     var limits = {};
     lockedTypes.forEach(function (type) {
@@ -630,8 +631,9 @@
       theme: theme,
       renderer: "zelos",
       sounds: false,
+      readOnly: readOnly,
       media: "/static/vendor/blockly/media/",
-      trashcan: true,
+      trashcan: !readOnly,
       comments: false,
       collapse: true,
       disable: true,

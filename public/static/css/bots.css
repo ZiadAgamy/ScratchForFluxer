@@ -366,3 +366,56 @@
   align-items: center;
   gap: 0.75rem;
 }
+
+/* ---------------------------------------------------------------- bots shared with me, and the invite page */
+.shared-title {
+  margin: 2rem 0 0.75rem;
+  font-size: var(--fs-lg);
+}
+
+.invite-page {
+  display: grid;
+  place-items: center;
+}
+
+.notice-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  max-width: 32rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.notice-card .bot-avatar {
+  width: 4rem;
+  height: 4rem;
+}
+
+.invite-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: var(--fs-md, 1rem);
+}
+
+.invite-allowed {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.invite-allowed li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.invite-allowed .yes {
+  color: var(--ok);
+}
+
+.invite-allowed .no {
+  color: var(--text-3);
+}

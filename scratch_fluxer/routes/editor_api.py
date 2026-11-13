@@ -18,6 +18,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from .. import access as acl
 from .. import catalogue, export, fluxer_api, store
 from .. import workspace as ws_lib
 from ..config import Settings, get_settings
@@ -32,8 +33,8 @@ from ..deps import (
     require_user,
     user_rate_limit,
 )
-from ..models import Asset, Bot, utcnow
-from .bots import bot_json, bot_view, get_owned_bot
+from ..models import Asset, Bot, User, utcnow
+from .bots import bot_json, bot_view
 
 router = APIRouter()
 save_limit = user_rate_limit("workspace-save", 90, 60)
@@ -69,27 +70,34 @@ async def block_list(request: Request) -> Response:
 @router.get("/bots/{bot_id}/edit", include_in_schema=False)
 async def editor_page(bot_id: str, request: Request, user: AuthUser = Depends(require_user)) -> Response:
     settings = get_settings()
-    bot = await db_run(_summary, user.id, bot_id)
+    bot, rights = await db_run(_summary, user.id, bot_id)
     return render(
         request,
         "editor.html",
         {
             "page": "editor",
             "bot": bot,
+            "rights": rights,
             "limits": store.limits(settings),
             "runner_mode": settings.runner_effective_mode,
         },
     )
 
 
-def _summary(db: Session, user_id: str, bot_id: str) -> dict[str, Any]:
-    return bot_view(get_owned_bot(db, user_id, bot_id), get_settings())
+def _summary(db: Session, user_id: str, bot_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    found = acl.get_access(db, user_id, bot_id)
+    view = bot_view(found.bot, get_settings(), owner=found.owner)
+    owner = db.get(User, found.bot.user_id)
+    rights = {**found.view(), "owner_name": (owner.global_name or owner.username) if owner else ""}
+    return view, rights
 
 
 # --------------------------------------------------------------------------- load and save
-def _view(bot: Bot, loaded: store.Loaded, settings: Settings) -> dict[str, Any]:
+def _view(found: acl.Access, loaded: store.Loaded, settings: Settings) -> dict[str, Any]:
+    bot = found.bot
     return {
-        "bot": bot_json(bot, settings),
+        "bot": bot_json(bot, settings, owner=found.owner),
+        "access": found.view(),
         "workspace": loaded.workspace,
         "version": bot.workspace_version,
         "dropped": loaded.dropped,
@@ -101,8 +109,8 @@ def _view(bot: Bot, loaded: store.Loaded, settings: Settings) -> dict[str, Any]:
 
 
 def _load(db: Session, user_id: str, bot_id: str) -> dict[str, Any]:
-    bot = get_owned_bot(db, user_id, bot_id)
-    return _view(bot, store.load(db, bot), get_settings())
+    found = acl.get_access(db, user_id, bot_id)
+    return _view(found, store.load(db, found.bot), get_settings())
 
 
 @router.get("/api/bots/{bot_id}/workspace")
@@ -111,7 +119,9 @@ async def load_workspace(bot_id: str, user: AuthUser = Depends(require_user)) ->
 
 
 def _bot_token(db: Session, user_id: str, bot_id: str) -> str:
-    bot = get_owned_bot(db, user_id, bot_id)
+    """The token, for the server's own use (asking Fluxer for emojis). Only people who may change the blocks get the
+    emoji list; the token itself never goes in an answer."""
+    bot = acl.get_access(db, user_id, bot_id, "edit").bot
     try:
         return get_vault().decrypt(bot.token_ciphertext)
     except Exception:  # noqa: BLE001 - an unreadable token is the person's to fix, never a crash
@@ -166,7 +176,7 @@ def _differs(sent: Any, kept: dict[str, Any]) -> bool:
 
 
 def _save(db: Session, user_id: str, bot_id: str, version: int, text: str, cleaned: dict[str, Any]) -> dict[str, Any]:
-    bot = get_owned_bot(db, user_id, bot_id)
+    bot = acl.get_access(db, user_id, bot_id, "edit").bot
     done = db.execute(
         update(Bot)
         .where(Bot.id == bot.id, Bot.workspace_version == version)
@@ -220,7 +230,7 @@ async def save_workspace(bot_id: str, request: Request, user: AuthUser = Depends
 
 # --------------------------------------------------------------------------- taking the code out
 def _code_for_export(db: Session, user_id: str, bot_id: str, with_files: bool) -> tuple[Bot, str, list]:
-    bot = get_owned_bot(db, user_id, bot_id)
+    bot = acl.get_access(db, user_id, bot_id, "export").bot
     loaded = store.load(db, bot)
     if not loaded.compiled.ok:
         raise HTTPException(

@@ -24,7 +24,7 @@ from ..config import Settings, get_settings
 from ..db import db_run
 from ..deps import AuthUser, read_body, require_csrf, require_user, user_rate_limit
 from ..models import Asset, Bot, utcnow
-from .bots import BOT_ID_RE, get_owned_bot
+from .. import access as acl
 
 router = APIRouter()
 write_limit = user_rate_limit("assets-write", 40, 60)
@@ -39,13 +39,9 @@ def megabytes(size: int) -> str:
 
 
 def _locked_bot(db: Session, user_id: str, bot_id: str) -> Bot:
-    """The person's bot, locked until the transaction ends so two uploads can't both fit under a limit."""
-    if not BOT_ID_RE.fullmatch(bot_id or ""):
-        raise HTTPException(status_code=404, detail="That bot doesn't exist.")
-    bot = db.execute(select(Bot).where(Bot.id == bot_id, Bot.user_id == user_id).with_for_update()).scalar_one_or_none()
-    if bot is None:
-        raise HTTPException(status_code=404, detail="That bot doesn't exist.")
-    return bot
+    """The bot, for a person who may manage its files, locked until the transaction ends so two uploads can't both fit
+    under a limit."""
+    return acl.get_access(db, user_id, bot_id, "files", lock=True).bot
 
 
 def _bad_name() -> HTTPException:
@@ -60,7 +56,7 @@ def _bad_name() -> HTTPException:
 
 # --------------------------------------------------------------------------- database work
 def _list(db: Session, user_id: str, bot_id: str) -> dict[str, Any]:
-    bot = get_owned_bot(db, user_id, bot_id)
+    bot = acl.get_access(db, user_id, bot_id).bot
     workspace, _dropped, _damaged = ws_lib.from_text(bot.workspace_json)
     used = ws_lib.files_used(workspace)
     return {
@@ -119,7 +115,7 @@ def _store(db: Session, user_id: str, bot_id: str, name: str, upload: assetlib.U
 
 
 def _fetch(db: Session, user_id: str, bot_id: str, name: str) -> tuple[str, str, str, str, bytes]:
-    bot = get_owned_bot(db, user_id, bot_id)
+    bot = acl.get_access(db, user_id, bot_id).bot
     row = db.execute(
         select(Asset.name, Asset.mime, Asset.kind, Asset.sha256, Asset.data).where(
             Asset.bot_id == bot.id, Asset.name == name

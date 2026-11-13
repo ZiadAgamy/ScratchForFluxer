@@ -1826,7 +1826,7 @@ def _command_arg(gen: Generator, node: Node, ctx: Context) -> Expr:
         else:
             gen.warn("This command has no arguments yet. Write their names on the command block (for example: user reason).", node)
         return Expr('""', P_ATOM, "text", "")
-    return Expr(ident, P_ATOM, "text")
+    return Expr(ident, P_ATOM, "any")
 
 
 def _community_id(gen: Generator, node: Node, ctx: Context) -> Expr:

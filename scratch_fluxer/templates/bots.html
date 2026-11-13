@@ -55,6 +55,28 @@
   </div>
   {% endif %}
 
+  {% if shared %}
+  <h2 class="shared-title">Shared with me</h2>
+  <ul class="bot-list panel">
+    {% for bot in shared %}
+    <li class="bot-row" data-bot-id="{{ bot.id }}" data-bot-name="{{ bot.name }}">
+      <img class="bot-avatar" src="{{ bot.avatar_url }}" alt="" width="48" height="48" referrerpolicy="no-referrer" decoding="async" loading="lazy" data-fallback>
+      <div class="bot-main">
+        <a class="bot-name" href="/bots/{{ bot.id }}/edit">{{ bot.name }}</a>
+        <div class="bot-meta">
+          <span>@{{ bot.bot_username }}</span>
+          <span>{{ icon("users-three") }}<span>Shared by {{ bot.owner_name }}</span></span>
+          <span>You can: {{ bot.can | join(", ") }}</span>
+        </div>
+      </div>
+      <div class="bot-actions">
+        <a class="btn btn-primary btn-sm" href="/bots/{{ bot.id }}/edit">{{ icon("puzzle-piece") }}<span>Open blocks</span></a>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
   <section class="your-data" aria-labelledby="your-data-title">
     <div>
       <h2 id="your-data-title">Your data</h2>

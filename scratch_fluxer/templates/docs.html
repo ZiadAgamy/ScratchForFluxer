@@ -66,6 +66,7 @@
       <li><a href="#codenames">Codenames</a></li>
       <li><a href="#commands">Commands: arguments and locks</a></li>
       <li><a href="#schedules">Schedules and time zones</a></li>
+      <li><a href="#sharing">Sharing a bot</a></li>
       <li><a href="#community">Channels, roles, threads</a></li>
       {%- for f in families %}
       <li><a href="#blocks-{{ f.id }}" data-family="{{ f.id }}"><i class="docs-dot" style="--dot: var(--cat-{{ f.id }})"></i>{{ f.name }}</a></li>
@@ -620,6 +621,18 @@ sudo journalctl -u mybot -f{% endcall %}
       </ul>
       <p>A scheduled script has no message under it, so it can't <em>reply</em>. Use <strong>send … to channel</strong> and paste the channel's ID (see <a href="#community">Where do I get an ID?</a>). A bot can have up to 10 schedule blocks, and each runs as long as the bot runs. If one run has a problem, the console says so and the schedule keeps going.</p>
       <p class="try"><strong>Try it:</strong> use <em>when the clock reaches 09:00 every day</em> with your time zone, and snap <em>send</em> <code>Good morning! It is $botName time</code> <em>to channel</em> your channel's ID under it.</p>
+    </section>
+
+    <section class="doc" id="sharing" aria-labelledby="h-sharing">
+      <h2 id="h-sharing">Sharing a bot with other people</h2>
+      <p>You can let friends help build your bot without ever giving them your bot's token. Open a bot and press <strong>Share</strong>.</p>
+      <ul class="checks">
+        <li>{{ icon("check-circle") }}<span><strong>Make an invite link.</strong> Choose when it stops working, how many people can use it, and what they may do: <em>edit blocks</em>, <em>manage files</em>, <em>start and stop the bot</em>, <em>see the console</em> and <em>export</em>. Looking at the blocks is always allowed.</span></li>
+        <li>{{ icon("check-circle") }}<span>The link is shown <strong>only once</strong>, when you make it. Copy it then and send it. We keep only a scrambled copy, so we can't show it again.</span></li>
+        <li>{{ icon("check-circle") }}<span>A bot can have up to 5 helpers and 10 active links. You can cancel a link, change what each person may do, or remove someone at any time. Helpers can leave by themselves.</span></li>
+        <li>{{ icon("check-circle") }}<span>Helpers <strong>never see the token</strong>. Without the <em>start and stop</em> permission they can't run the bot at all.</span></li>
+      </ul>
+      <p class="try"><strong>Try it:</strong> press <em>Share</em>, make a link that works for 1 person and 1 day with only <em>edit blocks</em> ticked, and send it to a friend. Their bot list will show it under <em>Shared with me</em>.</p>
     </section>
 
     <section class="doc" id="community" aria-labelledby="h-community">

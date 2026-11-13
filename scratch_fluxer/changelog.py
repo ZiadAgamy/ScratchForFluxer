@@ -14,6 +14,25 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-11-13",
+        "title": "Share a bot with an invite link",
+        "summary": "Let friends help build your bot with a link, without ever giving them your token.",
+        "changes": [
+            (
+                "new",
+                "Share button in the editor: make an invite link with an expiry, a number of uses and a checklist of what the person may do (edit blocks, manage files, start and stop, see the console, export). You can cancel links, change permissions and remove people.",
+            ),
+            (
+                "new",
+                "Bots shared with you appear under “Shared with me”. Helpers can leave a bot at any time and never see its token.",
+            ),
+            (
+                "fixed",
+                "The “argument” block now fits number sockets, like the minutes of the timeout block.",
+            ),
+        ],
+    },
+    {
         "date": "2026-11-12",
         "title": "Command arguments, permission locks and schedules",
         "summary": "Commands can take arguments and be locked to a permission, and your bot can now act by itself at a time of day in any time zone.",

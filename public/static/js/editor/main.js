@@ -9,6 +9,9 @@
   if (!root) return;
 
   var botId = root.dataset.botId;
+  var canEdit = root.dataset.canEdit !== "no"; /* the server decides what each person may do; this only hides what would be refused */
+  var canRun = root.dataset.canRun !== "no";
+  var canSee = root.dataset.canConsole !== "no";
   var workspaceUrl = "/api/bots/" + encodeURIComponent(botId) + "/workspace";
   var saver = null;
   var latest = null;
@@ -428,14 +431,14 @@
     E.console.init();
     E.runner.init({
       botId: botId,
-      mode: root.dataset.runner,
+      mode: canRun || canSee ? root.dataset.runner : "off",
       compile: function () { return latest; },
       flush: function () { return saver.flush(); },
       showProblems: function () { goTo("problems"); },
       showConsole: function () { if (isPhone()) showView("console"); },
     });
 
-    E.blocks.create(document.getElementById("blockly"));
+    E.blocks.create(document.getElementById("blockly"), { readOnly: !canEdit });
     E.blocks.load(data.workspace);
 
     saver = E.autosave.create({
@@ -453,6 +456,7 @@
     setStatus("saved");
 
     E.bus.on("change", function () {
+      if (!canEdit) return; /* nothing to save: this person can only look */
       saver.touch();
       updateUndo();
     });

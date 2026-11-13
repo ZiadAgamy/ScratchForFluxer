@@ -21,6 +21,10 @@
     </div>
   </div>
 
+  {% if not rights.role == "owner" %}
+  <span class="ed-shared" title="This bot belongs to {{ rights.owner_name }}. You can: look{% for key in rights.perms %}, {{ key }}{% endfor %}.">{{ icon("users-three") }}<span>Shared by {{ rights.owner_name }}</span></span>
+  {% endif %}
+
   <div class="ed-status" id="ed-status" data-state="loading" role="status" aria-live="polite">
     <i class="ph-fill ph-spinner-gap" aria-hidden="true"></i>
     <span id="ed-status-text">Loading</span>
@@ -37,6 +41,10 @@
     <button class="btn btn-sm ed-run-btn" id="restart-btn" type="button" disabled title="Stop the bot and start it again with your latest blocks">{{ icon("arrow-clockwise") }}<span>Restart</span></button>
     <button class="btn btn-sm btn-danger ed-run-btn" id="stop-btn" type="button" disabled title="Stop your bot">{{ icon("stop") }}<span>Stop</span></button>
   </div>
+
+  {% if rights.role == "owner" %}
+  <button class="btn btn-sm" id="share-btn" type="button" title="Invite people to work on this bot">{{ icon("users-three") }}<span>Share</span></button>
+  {% endif %}
 
   <details class="menu ed-get" id="ed-get">
     <summary class="btn btn-sm" aria-label="Get your code">{{ icon("download-simple") }}<span>Get code</span>{{ icon("caret-down") }}</summary>
@@ -55,6 +63,7 @@
     <div class="menu-panel">
       <div class="menu-head">Logged in as <strong>{{ user.display_name }}</strong>@{{ user.username }}</div>
       <a class="menu-item" href="/bots">{{ icon("robot") }}<span>My bots</span></a>
+      {% if rights.role != "owner" %}<button class="menu-item" id="leave-btn" type="button">{{ icon("sign-out") }}<span>Leave this bot</span></button>{% endif %}
       <a class="menu-item" href="/docs" target="_blank" rel="noopener">{{ icon("book-open-text") }}<span>Docs</span></a>
       <a class="menu-item" href="/changelog" target="_blank" rel="noopener">{{ icon("clock-counter-clockwise") }}<span>Changelog</span></a>
       <a class="menu-item" href="{{ fluxer_web_url }}" target="_blank" rel="noopener noreferrer">{{ icon("arrow-square-out") }}<span>Open Fluxer</span></a>
@@ -71,6 +80,12 @@
 <div class="ed-shell" id="editor" data-view="blocks"
      data-bot-id="{{ bot.id }}"
      data-bot-name="{{ bot.name }}"
+     data-role="{{ rights.role }}"
+     data-can-edit="{{ 'yes' if 'edit' in rights.perms else 'no' }}"
+     data-can-files="{{ 'yes' if 'files' in rights.perms else 'no' }}"
+     data-can-run="{{ 'yes' if 'run' in rights.perms else 'no' }}"
+     data-can-console="{{ 'yes' if 'console' in rights.perms or 'run' in rights.perms else 'no' }}"
+     data-can-export="{{ 'yes' if 'export' in rights.perms else 'no' }}"
      data-runner="{{ runner_mode }}">
 
   {#- ---------------------------------------------------------------- the blocks -#}
@@ -224,5 +239,6 @@
   <script src="{{ static('js/editor/console.js') }}" defer></script>
   <script src="{{ static('js/editor/runner.js') }}" defer></script>
   <script src="{{ static('js/editor/autosave.js') }}" defer></script>
+  <script src="{{ static('js/editor/share.js') }}" defer></script>
   <script src="{{ static('js/editor/main.js') }}" defer></script>
 {% endblock %}
