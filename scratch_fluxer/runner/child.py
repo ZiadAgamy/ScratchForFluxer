@@ -83,11 +83,23 @@ class Handler(logging.StreamHandler):
                 self.flush()
 
 
+#: Set when someone presses Stop (or the runner ends the bot). From then on the library's complaints about the tasks it
+#: had to cancel (a long "wait" inside "when the bot is ready", say) are only noise: the bot is stopping on purpose.
+STOPPING = threading.Event()
+
+
+def stop_requested(signum, frame):
+    STOPPING.set()
+    signal.default_int_handler(signum, frame)
+
+
 class DropShutdownNoise(logging.Filter):
     """When a bot is stopped, aiohttp complains about network sessions that were not closed first. The blocks never
     open one themselves, and there is nothing a person can do about the library's own, so these two are left out."""
 
     def filter(self, record):
+        if STOPPING.is_set() and record.name == "asyncio":
+            return False
         return not record.getMessage().startswith(("Unclosed client session", "Unclosed connector"))
 
 
@@ -127,9 +139,9 @@ def use_another_fluxer():
 
 def set_up_signals():
     """Stop (the runner sends Ctrl+C) and terminate both end the bot the way Ctrl+C does: it closes its connection."""
-    signal.signal(signal.SIGINT, signal.default_int_handler)
+    signal.signal(signal.SIGINT, stop_requested)
     try:
-        signal.signal(signal.SIGTERM, signal.default_int_handler)
+        signal.signal(signal.SIGTERM, stop_requested)
     except (ValueError, OSError):
         pass
 

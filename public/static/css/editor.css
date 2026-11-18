@@ -2822,3 +2822,15 @@ body:has(.ed-shell[data-can-export="no"]) .ed-get {
   display: flex;
   justify-content: flex-end;
 }
+
+.ed-empty-list {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.ed-empty-list .ed-link {
+  text-align: start;
+}

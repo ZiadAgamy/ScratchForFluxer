@@ -1763,6 +1763,18 @@ def _repeat_until(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: 
 
 def _forever(gen: Generator, node: Node, ctx: Context, rows: Rows, indent: int, depth: int) -> None:
     _warn_without_wait(gen, node)
+    if ctx.kind == "ready" and ctx.loops == 0:
+        gen.warn(
+            "“forever” inside “when the bot is ready” never lets the start finish. "
+            "Use an “every … minutes” block to repeat something.",
+            node,
+        )
+    elif ctx.kind not in ("schedule", "interval") and ctx.loops == 0:
+        gen.warn(
+            "“forever” here never ends, so this script keeps running (and repeating) for every message. "
+            "Remove it, or use an “every … minutes” block.",
+            node,
+        )
     rows.add(indent, "while True:")
     gen.body(node.inputs.get("DO"), ctx, rows, indent + 1, depth, loop=True, owner=node)
 
