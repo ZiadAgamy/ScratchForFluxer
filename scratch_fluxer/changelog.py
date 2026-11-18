@@ -14,6 +14,29 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-11-18",
+        "title": "Fewer surprises: warnings, a quiet stop and clearer problems",
+        "summary": "The editor now warns about blocks that make a bot misbehave, and stopping a bot is clean.",
+        "changes": [
+            (
+                "new",
+                "A warning on “forever” when it sits in “when the bot is ready” (it stops the start from ever finishing) or inside a command or event (it never ends). The message points to the “every … minutes” block instead.",
+            ),
+            (
+                "fixed",
+                "Stopping a bot while it was still waiting inside “when the bot is ready” no longer fills the console with a long error. The bot just stops.",
+            ),
+            (
+                "improved",
+                "When your blocks can't be turned into Python yet, the Python tab lists what to fix (click one to jump to its block) instead of saying nothing was written.",
+            ),
+            (
+                "fixed",
+                "The site's visit counter now loads from the right address, so the browser no longer refuses it.",
+            ),
+        ],
+    },
+    {
         "date": "2026-11-13",
         "title": "Share a bot with an invite link",
         "summary": "Let friends help build your bot with a link, without ever giving them your token.",

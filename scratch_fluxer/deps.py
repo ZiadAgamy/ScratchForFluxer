@@ -229,6 +229,8 @@ def static_url(path: str) -> str:
 def get_templates() -> Jinja2Templates:
     templates = Jinja2Templates(directory=str(PACKAGE_DIR / "templates"))
     templates.env.globals["static"] = static_url
+    # Vercel serves its own analytics script from the site's own address; anywhere else there is none to load.
+    templates.env.globals["vercel_analytics"] = bool(os.environ.get("VERCEL"))
     templates.env.filters["time_ago"] = time_ago
     templates.env.autoescape = True
     return templates

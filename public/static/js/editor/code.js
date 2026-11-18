@@ -24,7 +24,30 @@
     E.clear(refs.view);
     rows = [];
     if (!code) {
-      refs.view.appendChild(el("p", { class: "ed-empty", text: "Your blocks haven't written any Python yet." }));
+      var errors = current.diagnostics.filter(function (item) { return item.level === "error"; });
+      if (!errors.length) {
+        refs.view.appendChild(el("p", { class: "ed-empty", text: "Your blocks haven't written any Python yet." }));
+        return;
+      }
+      /* No code because something has to be fixed first: say what, instead of an empty page. */
+      var box = el("div", { class: "ed-empty ed-empty-problems" }, [
+        el("p", { text: "No Python yet: " + E.plural(errors.length, "problem") + " to fix first." }),
+      ]);
+      var list = el("ul", { class: "ed-empty-list" });
+      errors.slice(0, 5).forEach(function (item) {
+        var line = el("li", {}, [
+          el("button", {
+            class: "ed-link",
+            type: "button",
+            text: item.message,
+            on: { click: function () { if (item.block) E.bus.emit("problem:pick", item.block); } },
+          }),
+        ]);
+        list.appendChild(line);
+      });
+      box.appendChild(list);
+      if (errors.length > 5) box.appendChild(el("p", { text: "…and " + (errors.length - 5) + " more in the Problems tab." }));
+      refs.view.appendChild(box);
       return;
     }
     var lines = code.replace(/\n$/, "").split("\n");
@@ -134,7 +157,7 @@
   function render(compile) {
     var changed = compile.code !== current.code;
     current = { code: compile.code, lines: compile.lines || {}, diagnostics: compile.diagnostics || [] };
-    if (changed) buildRows(compile.code);
+    if (changed || !compile.code) buildRows(compile.code);
     var count = compile.code ? compile.code.replace(/\n$/, "").split("\n").length : 0;
     refs.meta.textContent = count ? "· " + E.plural(count, "line") : "";
     refs.copy.disabled = !compile.code;
