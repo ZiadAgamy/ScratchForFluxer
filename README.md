@@ -51,7 +51,7 @@ cd ScratchForFluxer
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env               # Windows: copy .env.example .env
+cp env.example .env               # Windows: copy .env.example .env
 ```
 
 Open `.env` and add `FLUXER_CLIENT_ID` and `FLUXER_CLIENT_SECRET` as described in the next section. Then run:
