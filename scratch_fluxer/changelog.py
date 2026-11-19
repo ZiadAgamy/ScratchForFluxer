@@ -14,6 +14,17 @@ KINDS = {"new": "New", "improved": "Improved", "fixed": "Fixed", "docs": "Docs"}
 
 ENTRIES: list[dict[str, Any]] = [
     {
+        "date": "2026-11-19",
+        "title": "The editor fits your window",
+        "summary": "The block editor now fills the whole browser window, with no empty strip at the side or the bottom.",
+        "changes": [
+            (
+                "fixed",
+                "On some browsers and tablets the editor left an empty strip at the right or the bottom of the page. It is now pinned to the window and follows it when the window, the toolbar or the screen's direction changes.",
+            ),
+        ],
+    },
+    {
         "date": "2026-11-18",
         "title": "Fewer surprises: warnings, a quiet stop and clearer problems",
         "summary": "The editor now warns about blocks that make a bot misbehave, and stopping a bot is clean.",
