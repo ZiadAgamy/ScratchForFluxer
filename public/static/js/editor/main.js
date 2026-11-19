@@ -520,9 +520,32 @@
     if (started) return;
     boot();
   });
+  /* Some browsers (a resized window on a tablet, a toolbar that hides) report the page's size late or wrongly and
+     leave a strip at the side or the bottom. The window knows its real size, so the editor is set to it. */
+  function fitWindow() {
+    var vv = window.visualViewport;
+    var width = Math.round(vv && vv.scale === 1 ? vv.width : window.innerWidth);
+    var height = Math.round(vv && vv.scale === 1 ? vv.height : window.innerHeight);
+    var body = document.body;
+    if (width > 200 && height > 200) {
+      body.style.width = width + "px";
+      body.style.height = height + "px";
+    }
+  }
+  fitWindow();
   window.addEventListener("resize", function () {
+    fitWindow();
     E.blocks.resize();
   });
+  window.addEventListener("orientationchange", function () {
+    setTimeout(function () { fitWindow(); E.blocks.resize(); }, 250);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", function () {
+      fitWindow();
+      E.blocks.resize();
+    });
+  }
   if (window.ResizeObserver) {
     var pending = null;
     new ResizeObserver(function () {
