@@ -84,7 +84,7 @@ The site only requests the `identify` scope, which provides your ID, name, and a
 
 ## 3. Connect a self-hosted Fluxer
 
-If you host Fluxer yourself, the site needs your instance’s service URLs. By default, it points to the public Fluxer. See [Fluxer’s self-hosting guide](https://docs.fluxer.app/self-hosting) for the server setup.
+If you host Fluxer yourself, the site needs your instance’s service URLs. By default, it points to the public Fluxer. See [Fluxer’s self-hosting guide](https://docs.fluxer.com/operator/) for the server setup.
 
 1. Open `https://YOUR-FLUXER-HOST/.well-known/fluxer`. It lists the addresses of your instance (API, web app, media, OAuth2).
 2. Put them in your settings (`.env` or your host's environment variables):
