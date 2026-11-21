@@ -227,9 +227,9 @@ Each block is described once in `catalogue.py`. The editor, compiler, landing pa
 | Guide for beginners | <https://scratch.fluxer.my/docs> |
 | Source code | <https://github.com/ZiadAgamy/ScratchForFluxer> |
 | Community server | <https://fluxer.gg/oHy1OzcO> |
-| Fluxer | <https://fluxer.app> |
+| Fluxer | <https://fluxer.com> |
 | Fluxer docs | <https://docs.fluxer.app> |
-| Self-hosting Fluxer | <https://docs.fluxer.app/self-hosting> |
+| Self-hosting Fluxer | <https://docs.fluxer.com/operator/> |
 | fluxer.py (the bot library) | <https://github.com/akarealemil/fluxer.py> |
 | Blockly | <https://github.com/google/blockly> |
 | Phosphor icons | <https://phosphoricons.com> |
